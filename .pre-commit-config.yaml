@@ -1,0 +1,28 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+        exclude: "(docs/.*|integration/tpl/files/.*)"
+      - id: check-yaml
+        exclude: "examples/.*"
+      - id: check-added-large-files
+  - repo: local
+    hooks:
+      - id: go-mod-tidy
+        name: go-mod-tidy
+        language: system
+        entry: make
+        args: ["tidy"]
+        types: ["go"]
+        pass_filenames: false
+  - repo: local
+    hooks:
+      - id: lint
+        name: lint
+        language: system
+        entry: make
+        args: ["lint"]
+        types: ["go"]
+        pass_filenames: false
