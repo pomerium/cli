@@ -8,6 +8,7 @@ require (
 	github.com/go-chi/chi v1.5.4
 	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/golangci/golangci-lint v1.42.1
+	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
 	github.com/martinlindhe/base36 v1.1.0
 	github.com/pomerium/pomerium v0.15.6
@@ -67,7 +68,6 @@ require (
 	github.com/golangci/misspell v0.3.5 // indirect
 	github.com/golangci/revgrep v0.0.0-20210208091834-cd28932614b5 // indirect
 	github.com/golangci/unconvert v0.0.0-20180507085042-28b1c447d1f4 // indirect
-	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/gordonklaus/ineffassign v0.0.0-20210225214923-2e10b2664254 // indirect
 	github.com/gostaticanalysis/analysisutil v0.4.1 // indirect
 	github.com/gostaticanalysis/comment v1.4.1 // indirect
@@ -111,6 +111,7 @@ require (
 	github.com/nishanths/exhaustive v0.2.3 // indirect
 	github.com/nishanths/predeclared v0.2.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/onsi/gomega v1.16.0 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/phayes/checkstyle v0.0.0-20170904204023-bfd46e6a821d // indirect
 	github.com/pkg/errors v0.9.1 // indirect
