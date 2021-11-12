@@ -84,7 +84,7 @@ service Listener {
   // StatusUpdates opens a stream to listen to connection status updates
   // a client has to subscribe and continuously
   // listen to the broadcasted updates
-  rpc StatusUpdates(StatusUpdatesRequest) returns (ListenerStatusResponse);
+  rpc StatusUpdates(StatusUpdatesRequest) returns (stream ConnectionStatusUpdate);
 }
 
 message ListenerUpdateRequest {

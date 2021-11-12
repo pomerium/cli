@@ -303,7 +303,7 @@ type ListenerClient interface {
 	// StatusUpdates opens a stream to listen to connection status updates
 	// a client has to subscribe and continuously
 	// listen to the broadcasted updates
-	StatusUpdates(ctx context.Context, in *StatusUpdatesRequest, opts ...grpc.CallOption) (*ListenerStatusResponse, error)
+	StatusUpdates(ctx context.Context, in *StatusUpdatesRequest, opts ...grpc.CallOption) (Listener_StatusUpdatesClient, error)
 }
 
 type listenerClient struct {
@@ -332,13 +332,36 @@ func (c *listenerClient) GetStatus(ctx context.Context, in *Selector, opts ...gr
 	return out, nil
 }
 
-func (c *listenerClient) StatusUpdates(ctx context.Context, in *StatusUpdatesRequest, opts ...grpc.CallOption) (*ListenerStatusResponse, error) {
-	out := new(ListenerStatusResponse)
-	err := c.cc.Invoke(ctx, "/pomerium.cli.Listener/StatusUpdates", in, out, opts...)
+func (c *listenerClient) StatusUpdates(ctx context.Context, in *StatusUpdatesRequest, opts ...grpc.CallOption) (Listener_StatusUpdatesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Listener_ServiceDesc.Streams[0], "/pomerium.cli.Listener/StatusUpdates", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &listenerStatusUpdatesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Listener_StatusUpdatesClient interface {
+	Recv() (*ConnectionStatusUpdate, error)
+	grpc.ClientStream
+}
+
+type listenerStatusUpdatesClient struct {
+	grpc.ClientStream
+}
+
+func (x *listenerStatusUpdatesClient) Recv() (*ConnectionStatusUpdate, error) {
+	m := new(ConnectionStatusUpdate)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // ListenerServer is the server API for Listener service.
@@ -352,7 +375,7 @@ type ListenerServer interface {
 	// StatusUpdates opens a stream to listen to connection status updates
 	// a client has to subscribe and continuously
 	// listen to the broadcasted updates
-	StatusUpdates(context.Context, *StatusUpdatesRequest) (*ListenerStatusResponse, error)
+	StatusUpdates(*StatusUpdatesRequest, Listener_StatusUpdatesServer) error
 }
 
 // UnimplementedListenerServer should be embedded to have forward compatible implementations.
@@ -365,8 +388,8 @@ func (UnimplementedListenerServer) Update(context.Context, *ListenerUpdateReques
 func (UnimplementedListenerServer) GetStatus(context.Context, *Selector) (*ListenerStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStatus not implemented")
 }
-func (UnimplementedListenerServer) StatusUpdates(context.Context, *StatusUpdatesRequest) (*ListenerStatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StatusUpdates not implemented")
+func (UnimplementedListenerServer) StatusUpdates(*StatusUpdatesRequest, Listener_StatusUpdatesServer) error {
+	return status.Errorf(codes.Unimplemented, "method StatusUpdates not implemented")
 }
 
 // UnsafeListenerServer may be embedded to opt out of forward compatibility for this service.
@@ -416,22 +439,25 @@ func _Listener_GetStatus_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Listener_StatusUpdates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StatusUpdatesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _Listener_StatusUpdates_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StatusUpdatesRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(ListenerServer).StatusUpdates(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/pomerium.cli.Listener/StatusUpdates",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ListenerServer).StatusUpdates(ctx, req.(*StatusUpdatesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(ListenerServer).StatusUpdates(m, &listenerStatusUpdatesServer{stream})
+}
+
+type Listener_StatusUpdatesServer interface {
+	Send(*ConnectionStatusUpdate) error
+	grpc.ServerStream
+}
+
+type listenerStatusUpdatesServer struct {
+	grpc.ServerStream
+}
+
+func (x *listenerStatusUpdatesServer) Send(m *ConnectionStatusUpdate) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 // Listener_ServiceDesc is the grpc.ServiceDesc for Listener service.
@@ -449,11 +475,13 @@ var Listener_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetStatus",
 			Handler:    _Listener_GetStatus_Handler,
 		},
+	},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "StatusUpdates",
-			Handler:    _Listener_StatusUpdates_Handler,
+			StreamName:    "StatusUpdates",
+			Handler:       _Listener_StatusUpdates_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/api.proto",
 }
