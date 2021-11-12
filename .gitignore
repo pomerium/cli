@@ -1,15 +1,92 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
+*.db
+.*.yml
+.*.yaml
+.*.json
+.*.rego
+pem
+env
+coverage.txt
+gsuite.service.account.json
+*.pem
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
 *.so
-*.dylib
 
-# Test binary, built with `go test -c`
+# Folders
+_obj
+_test
+.cover
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+
+_testmain.go
+
+*.exe
 *.test
+*.prof
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# Other dirs
+/bin/
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# Without this, the *.[568vq] above ignores this folder.
+!**/graphrbac/1.6
+
+
+.DS_Store
+.idea
+.vscode
+
+dist/*
+bin/*
+tags
+
+# Editor backups
+*~
+*.sw[a-z]
+
+# IntelliJ IDEA project files
+.idea
+*.ipr
+*.iml
+
+
+# dependencies
+ui/node_modules
+ui/bower_components
+
+# for building static assets
+node_modules
+package-lock.json
+
+# docs
+
+lib/core/metadata.js
+lib/core/MetadataBlog.js
+
+translated_docs
+build/
+yarn.lock
+node_modules
+i18n/*
+docs/.vuepress/dist/
+.firebase/
+.changes.md
+
+# autocert
+.pomerium/
+
+!.pre-commit-config.yaml
+
+.service-accounts
+
+/bazel-*
+internal/envoy/files/
