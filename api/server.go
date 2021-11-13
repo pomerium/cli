@@ -39,9 +39,6 @@ type Tunnel interface {
 	Run(context.Context, io.ReadWriter, tcptunnel.TunnelEvents) error
 }
 
-// NewTunnel abstracts tunnel creation for easy mocking
-type NewTunnel func(id string) (Tunnel, string, error)
-
 // Server implements both config and listener interfaces
 type Server interface {
 	pb.ConfigServer
@@ -54,6 +51,7 @@ type server struct {
 	EventBroadcaster
 	ListenerStatus
 	*config
+	browserCmd string
 }
 
 var (
@@ -101,6 +99,13 @@ func withDefaultConfigProvider() ServerOption {
 		if s.ConfigProvider == nil {
 			return WithConfigProvider(new(MemCP))(s)
 		}
+		return nil
+	}
+}
+
+func WithBrowserCommand(cmd string) ServerOption {
+	return func(s *server) error {
+		s.browserCmd = cmd
 		return nil
 	}
 }

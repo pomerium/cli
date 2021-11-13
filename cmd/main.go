@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	"github.com/pomerium/pomerium/pkg/cryptutil"
@@ -16,10 +18,16 @@ var rootCmd = &cobra.Command{
 }
 
 func main() {
+	setupLogger()
+
 	err := rootCmd.Execute()
 	if err != nil {
-		fatalf("%s", err.Error())
+		log.Error().Err(err).Msg("exit")
 	}
+}
+
+func setupLogger() {
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 }
 
 func fatalf(msg string, args ...interface{}) {

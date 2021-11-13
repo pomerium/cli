@@ -17,7 +17,7 @@ import (
 	"github.com/pomerium/cli/tcptunnel"
 )
 
-func newTunnel(conn *pb.Connection) (Tunnel, string, error) {
+func newTunnel(conn *pb.Connection, browserCmd string) (Tunnel, string, error) {
 	listenAddr := "127.0.0.1:0"
 	if conn.ListenAddr != nil {
 		listenAddr = *conn.ListenAddr
@@ -40,6 +40,7 @@ func newTunnel(conn *pb.Connection) (Tunnel, string, error) {
 		tcptunnel.WithDestinationHost(conn.GetRemoteAddr()),
 		tcptunnel.WithProxyHost(pxy.Host),
 		tcptunnel.WithTLSConfig(tlsCfg),
+		tcptunnel.WithBrowserCommand(browserCmd),
 	), listenAddr, nil
 }
 
