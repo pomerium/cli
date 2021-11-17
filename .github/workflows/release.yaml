@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_CLI_EXPERIMENTAL: "enabled"
+    outputs:
+      tag: ${{ steps.tagName.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Unshallow
+        run: git fetch --prune --unshallow
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.x
+
+      - name: Set up Docker
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - uses: azure/docker-login@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: v0.184.0
+          args: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPARITOR_GITHUB_TOKEN: ${{ secrets.APPARITOR_GITHUB_TOKEN }}
+
+      - name: Get tag name
+        id: tagName
+        run: |
+          TAG=$(git describe --tags --exact-match)
+          echo ::set-output name=tag::${TAG}
+          echo ::set-output name=version::${TAG#v}
+
+      - name: Install Cloudsmith CLI
+        run: |
+          pip3 install cloudsmith-cli
+
+      - name: Publish to Cloudsmith
+        env:
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+        working-directory: dist/
+        run: |
+          DEBS="pomerium-cli_${VERSION}-1_amd64.deb pomerium-cli_${VERSION}-1_arm64.deb pomerium-cli_${VERSION}-1_armhf.deb pomerium_${VERSION}-1_amd64.deb pomerium_${VERSION}-1_arm64.deb"
+          for pkg in $(echo $DEBS); do
+            cloudsmith push deb pomerium/pomerium/debian/any-version $pkg
+          done
