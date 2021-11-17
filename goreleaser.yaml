@@ -1,0 +1,125 @@
+project_name: pomerium-cli
+
+release:
+  prerelease: auto
+  github:
+    owner: pomerium
+    name: cli
+  name_template: "v{{.Version}}"
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: pomerium-cli
+    main: ./cmd/main.go
+    binary: pomerium-cli
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goos:
+      - linux
+      - darwin
+      - windows
+      - freebsd
+    goarm:
+      - "6"
+      - "7"
+    ignore:
+      - goos: freebsd
+        goarch: arm64
+      - goos: freebsd
+        goarch: arm
+
+    ldflags:
+      - -s -w
+      - -X github.com/pomerium/cli/cmd/version.Version={{.Version}}
+      - -X github.com/pomerium/cli/cmd/version.GitCommit={{.ShortCommit}}
+      - -X github.com/pomerium/cli/cmd/version.BuildMeta={{.Timestamp}}
+      - -X github.com/pomerium/cli/cmd/version.ProjectName=pomerium
+      - -X github.com/pomerium/cli/cmd/version.ProjectURL=https://wwww.pomerium.io
+
+archives:
+  - name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    id: pomerium-cli
+    builds:
+      - pomerium-cli
+    files:
+      - none*
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "{{ .ProjectName }}_checksums.txt"
+
+snapshot:
+  name_template: "{{ .Version }}+next+{{ .ShortCommit }}"
+
+brews:
+  - # Name template of the recipe
+    name: pomerium-cli
+
+    # IDs of the archives to use.
+    ids:
+      - pomerium-cli
+
+    # GOARM to specify which 32-bit arm version to use if there are multiple versions
+    # from the build section. Brew formulas support atm only one 32-bit version.
+    # Default is 6 for all artifacts or each id if there a multiple versions.
+    goarm: 6
+
+    tap:
+      owner: pomerium
+      name: homebrew-tap
+      # Optionally a token can be provided, if it differs from the token provided to GoReleaser
+      token: "{{ .Env.APPARITOR_GITHUB_TOKEN }}"
+
+    # Git author used to commit to the repository.
+    # Defaults are shown.
+    commit_author:
+      name: apparitor
+      email: apparitor@users.noreply.github.com
+
+    folder: Formula
+    install: |
+      bin.install "pomerium-cli"
+
+nfpms:
+  - id: pomerium-cli
+
+    builds:
+      - pomerium-cli
+
+    package_name: pomerium-cli
+    vendor: Pomerium, Inc.
+    homepage: https://www.pomerium.com
+    description: Identity Aware Proxy
+    maintainer: Pomerium <info@pomerium.com>
+    license: Apache 2.0
+    epoch: 1
+    release: 1
+    meta: false
+
+    formats:
+      - deb
+      - rpm
+
+    bindir: /usr/bin
+
+    overrides:
+      deb:
+        replacements:
+          arm64: arm64
+        file_name_template: '{{ .ProjectName }}_{{ .Version }}-{{ .Release }}_{{ .Arch }}{{ if .Arm }}{{if eq .Arm "7"}}hf{{ end }}{{ end }}'
+      rpm:
+        replacements:
+          arm64: aarch64
+          amd64: x86_64
+        file_name_template: '{{ .ProjectName }}-{{ .Version }}-{{ .Release }}.{{ .Arch }}{{ if .Arm }}{{if eq .Arm "7"}}hf{{ end }}{{ end }}'
