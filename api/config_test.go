@@ -7,14 +7,10 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
 	pb "github.com/pomerium/cli/proto"
 )
-
-// StrP returns string pointer
-func StrP(txt string) *string {
-	return &txt
-}
 
 func TestConfig(t *testing.T) {
 	cfg := NewConfig()
@@ -23,11 +19,11 @@ func TestConfig(t *testing.T) {
 	assert.Empty(t, cfg.listAll())
 
 	cfg.upsert(&pb.Record{
-		Id:   StrP("a"),
+		Id:   proto.String("a"),
 		Tags: []string{"alpha", "bravo"},
 	})
 	cfg.upsert(&pb.Record{
-		Id:   StrP("b"),
+		Id:   proto.String("b"),
 		Tags: []string{"go", "bravo"},
 	})
 	assert.Empty(t, cmp.Diff([]string{"alpha", "bravo", "go"},
