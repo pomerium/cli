@@ -100,7 +100,7 @@ nfpms:
     package_name: pomerium-cli
     vendor: Pomerium, Inc.
     homepage: https://www.pomerium.com
-    description: Identity Aware Proxy
+    description: CLI for Pomerium, an identity-aware access proxy
     maintainer: Pomerium <info@pomerium.com>
     license: Apache 2.0
     epoch: 1
