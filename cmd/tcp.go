@@ -24,6 +24,7 @@ var tcpCmdOptions struct {
 
 func init() {
 	addTLSFlags(tcpCmd)
+	addBrowserFlags(tcpCmd)
 	flags := tcpCmd.Flags()
 	flags.StringVar(&tcpCmdOptions.listen, "listen", "127.0.0.1:0",
 		"local address to start a listener on")
