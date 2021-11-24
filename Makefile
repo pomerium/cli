@@ -22,6 +22,8 @@ GO ?= "go"
 GO_LDFLAGS=-ldflags "-s -w $(CTIMEVAR)"
 GOOSARCHES = linux/amd64 darwin/amd64 windows/amd64
 
+.PHONY: all
+all: clean lint test build
 
 .PHONY: test
 test: ## test everything
@@ -52,6 +54,13 @@ build: ## Build everything.
 	@echo "==> $@"
 	@CGO_ENABLED=0 GO111MODULE=on go build -tags "$(BUILDTAGS)" ${GO_LDFLAGS} -o $(BINDIR)/$(NAME) ./cmd/"$(NAME)"
 
+.PHONY: snapshot
+snapshot: ## Create release snapshot
+	APPARITOR_GITHUB_TOKEN=foo goreleaser release --snapshot --rm-dist
+
+
 .PHONY: help
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+
