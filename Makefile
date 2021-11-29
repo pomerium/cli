@@ -23,19 +23,19 @@ GO_LDFLAGS=-ldflags "-s -w $(CTIMEVAR)"
 GOOSARCHES = linux/amd64 darwin/amd64 windows/amd64
 
 
-.PHONY: test 
+.PHONY: test
 test: ## test everything
 	go test ./...
 
-.PHONY: lint 
+.PHONY: lint
 lint: ## run go mod tidy
 	go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...
 
-.PHONY: tidy 
+.PHONY: tidy
 tidy: ## run go mod tidy
 	go mod tidy -compat=1.17
 
-.PHONY: tools 
+.PHONY: tools
 tools: ## generate protobuff files
 	go install google.golang.org/protobuf/cmd/protoc-gen-go
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc

@@ -24,7 +24,6 @@ require (
 
 require (
 	4d63.com/gochecknoglobals v0.1.0 // indirect
-	contrib.go.opencensus.io/exporter/jaeger v0.2.1 // indirect
 	github.com/Antonboom/errname v0.1.5 // indirect
 	github.com/Antonboom/nilnil v0.1.0 // indirect
 	github.com/BurntSushi/toml v0.4.1 // indirect
