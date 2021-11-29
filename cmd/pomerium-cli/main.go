@@ -10,11 +10,13 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
+	"github.com/pomerium/cli/version"
 	"github.com/pomerium/pomerium/pkg/cryptutil"
 )
 
 var rootCmd = &cobra.Command{
-	Use: "pomerium-cli",
+	Use:     "pomerium-cli",
+	Version: version.FullVersion(),
 }
 
 func main() {
