@@ -22,6 +22,8 @@ GO ?= "go"
 GO_LDFLAGS=-ldflags "-s -w $(CTIMEVAR)"
 GOOSARCHES = linux/amd64 darwin/amd64 windows/amd64
 
+.PHONY: all
+all: clean lint test build
 
 .PHONY: test
 test: ## test everything
@@ -51,6 +53,11 @@ clean: ## Cleanup any build binaries or packages.
 build: ## Build everything.
 	@echo "==> $@"
 	@CGO_ENABLED=0 GO111MODULE=on go build -tags "$(BUILDTAGS)" ${GO_LDFLAGS} -o $(BINDIR)/$(NAME) ./cmd/"$(NAME)"
+
+.PHONY: snapshot
+snapshot: ## Create release snapshot
+	APPARITOR_GITHUB_TOKEN=foo goreleaser release --snapshot --rm-dist
+
 
 .PHONY: help
 help:

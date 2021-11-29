@@ -1,0 +1,6 @@
+ARG ARCH
+
+FROM gcr.io/distroless/static:latest-${ARCH}
+WORKDIR /pomerium
+COPY pomerium* /bin/
+ENTRYPOINT [ "/bin/pomerium-cli" ]

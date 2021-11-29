@@ -17,7 +17,7 @@ before:
 
 builds:
   - id: pomerium-cli
-    main: ./cmd/main.go
+    main: ./cmd/pomerium-cli
     binary: pomerium-cli
     goarch:
       - amd64
@@ -100,7 +100,7 @@ nfpms:
     package_name: pomerium-cli
     vendor: Pomerium, Inc.
     homepage: https://www.pomerium.com
-    description: Identity Aware Proxy
+    description: Local client for Pomerium, an identity aware proxy.
     maintainer: Pomerium <info@pomerium.com>
     license: Apache 2.0
     epoch: 1
@@ -123,3 +123,39 @@ nfpms:
           arm64: aarch64
           amd64: x86_64
         file_name_template: '{{ .ProjectName }}-{{ .Version }}-{{ .Release }}.{{ .Arch }}{{ if .Arm }}{{if eq .Arm "7"}}hf{{ end }}{{ end }}'
+
+dockers:
+  - image_templates:
+      - "pomerium/cli:amd64-{{ .Tag }}"
+    dockerfile: Dockerfile.release
+    build_flag_templates:
+      - "--pull"
+      - "--build-arg=ARCH=amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "--label=repository=http://github.com/pomerium/cli"
+      - "--label=homepage=http://www.pomerium.io"
+
+  - goarch: arm64
+    image_templates:
+      - "pomerium/cli:arm64v8-{{ .Tag }}"
+    dockerfile: Dockerfile.release
+    build_flag_templates:
+      - "--pull"
+      - "--build-arg=ARCH=arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "--label=repository=http://github.com/pomerium/cli"
+      - "--label=homepage=http://www.pomerium.io"
+
+docker_manifests:
+  - name_template: "pomerium/cli:{{ .Tag }}"
+    image_templates:
+      - pomerium/cli:arm64v8-{{ .Tag }}
+      - pomerium/cli:amd64-{{ .Tag }}
