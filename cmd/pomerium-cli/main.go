@@ -33,7 +33,7 @@ func setupLogger() {
 }
 
 func fatalf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"foo\n", args...)
+	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
 }
 
