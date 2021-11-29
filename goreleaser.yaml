@@ -17,7 +17,7 @@ before:
 
 builds:
   - id: pomerium-cli
-    main: ./cmd
+    main: ./cmd/pomerium-cli
     binary: pomerium-cli
     goarch:
       - amd64
