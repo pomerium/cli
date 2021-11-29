@@ -11,7 +11,7 @@ require (
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
 	github.com/martinlindhe/base36 v1.1.0
-	github.com/pomerium/pomerium v0.15.6
+	github.com/pomerium/pomerium v0.15.7
 	github.com/rs/zerolog v1.26.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.2.1
@@ -38,6 +38,7 @@ require (
 	github.com/blizzy78/varnamelen v0.3.0 // indirect
 	github.com/bombsimon/wsl/v3 v3.3.0 // indirect
 	github.com/breml/bidichk v0.1.1 // indirect
+	github.com/btcsuite/btcutil v1.0.2 // indirect
 	github.com/butuzov/ireturn v0.1.1 // indirect
 	github.com/caddyserver/certmagic v0.15.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
@@ -96,6 +97,7 @@ require (
 	github.com/ldez/gomoddirectives v0.2.2 // indirect
 	github.com/ldez/tagliatelle v0.2.0 // indirect
 	github.com/libdns/libdns v0.2.1 // indirect
+	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/maratori/testpackage v1.0.1 // indirect
 	github.com/matoous/godox v0.0.0-20210227103229-6504466cf951 // indirect
