@@ -78,4 +78,4 @@ jobs:
         if: "steps.latestTag.outputs.tag == steps.tagName.outputs.tag"
         run: |
           docker manifest create -a pomerium/cli:latest pomerium/cli:amd64-${{ steps.tagName.outputs.tag }} pomerium/cli:arm64v8-${{ steps.tagName.outputs.tag }}
-          docker manifest push pomerium/pomerium:latest
+          docker manifest push pomerium/cli:latest
