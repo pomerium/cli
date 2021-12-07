@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/pomerium/cli/proto"
 	"github.com/pomerium/cli/tcptunnel"
@@ -150,6 +151,7 @@ func (evt *tunnelEvents) OnConnecting(ctx context.Context) {
 		Id:       evt.id,
 		PeerAddr: evt.peer,
 		Status:   pb.ConnectionStatusUpdate_CONNECTION_STATUS_CONNECTING,
+		Ts:       timestamppb.Now(),
 	})
 }
 
@@ -160,6 +162,7 @@ func (evt *tunnelEvents) OnConnected(ctx context.Context) {
 		Id:       evt.id,
 		PeerAddr: evt.peer,
 		Status:   pb.ConnectionStatusUpdate_CONNECTION_STATUS_CONNECTED,
+		Ts:       timestamppb.Now(),
 	})
 }
 
@@ -171,6 +174,7 @@ func (evt *tunnelEvents) OnAuthRequired(ctx context.Context, u string) {
 		PeerAddr: evt.peer,
 		Status:   pb.ConnectionStatusUpdate_CONNECTION_STATUS_AUTH_REQUIRED,
 		AuthUrl:  &u,
+		Ts:       timestamppb.Now(),
 	})
 }
 
@@ -180,6 +184,7 @@ func (evt *tunnelEvents) OnDisconnected(ctx context.Context, err error) {
 		Id:       evt.id,
 		PeerAddr: evt.peer,
 		Status:   pb.ConnectionStatusUpdate_CONNECTION_STATUS_DISCONNECTED,
+		Ts:       timestamppb.Now(),
 	}
 	if err != nil {
 		txt := err.Error()

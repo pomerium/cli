@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package pomerium.cli;
 option go_package = "github.com/pomerium/cli/proto";
+import "google/protobuf/timestamp.proto";
 
 // Config represents desktop client configuration
 service Config {
@@ -122,6 +123,8 @@ message ConnectionStatusUpdate {
   optional string last_error = 4;
   // provides an authentication URL when AUTH_REQUIRED status is set
   optional string auth_url = 5;
+  // event timestamp
+  google.protobuf.Timestamp ts = 6;
 }
 
 // Connection
