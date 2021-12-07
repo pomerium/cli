@@ -128,7 +128,7 @@ func tunnelAcceptLoop(ctx context.Context, id string, li net.Listener, tun Tunne
 			evt := &tunnelEvents{
 				EventBroadcaster: b,
 				id:               id,
-				peer:             conn.LocalAddr().String(),
+				peer:             conn.RemoteAddr().String(),
 			}
 			err := tun.Run(ctx, conn, evt)
 			if err != nil {
