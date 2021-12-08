@@ -2,11 +2,14 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/pomerium/cli/proto"
 )
@@ -71,11 +74,22 @@ func (s *server) connectTunnelLocked(id string) (net.Addr, error) {
 	lc := new(net.ListenConfig)
 	li, err := lc.Listen(ctx, "tcp", listenAddr)
 	if err != nil {
+		_ = s.EventBroadcaster.Update(ctx, &pb.ConnectionStatusUpdate{
+			Id:        id,
+			LastError: proto.String(fmt.Errorf("listen: %w", err).Error()),
+			Ts:        timestamppb.Now(),
+		})
 		cancel()
 		return nil, err
 	}
 
 	if err = s.SetListening(id, cancel, li.Addr().String()); err != nil {
+		_ = s.EventBroadcaster.Update(ctx, &pb.ConnectionStatusUpdate{
+			Id:        id,
+			LastError: proto.String(fmt.Errorf("SetListening: %w", err).Error()),
+			Ts:        timestamppb.Now(),
+		})
+		cancel()
 		return nil, err
 	}
 	go tunnelAcceptLoop(ctx, id, li, tun, s.EventBroadcaster)
