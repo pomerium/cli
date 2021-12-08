@@ -2,10 +2,10 @@ package api
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 
 	pb "github.com/pomerium/cli/proto"
 )
@@ -72,8 +72,6 @@ func (e *events) Reset(ctx context.Context, id string) error {
 }
 
 func (e *events) Update(ctx context.Context, evt *pb.ConnectionStatusUpdate) error {
-	e.history[evt.Id] = append(e.history[evt.Id], evt)
-
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -84,9 +82,6 @@ func (e *events) Update(ctx context.Context, evt *pb.ConnectionStatusUpdate) err
 
 // Subscribe to receiving channel updates for records within the given selector
 // the channel would be closed and subscription removed  context is closed
-//
-// TODO: provide historical data between listener connect/disconnect
-//
 func (e *events) Subscribe(ctx context.Context, id string) (chan *pb.ConnectionStatusUpdate, error) {
 	sub := &subscriber{
 		UUID:    uuid.New(),
@@ -109,8 +104,9 @@ func (e *events) run(ctx context.Context) {
 			e.shutdown()
 			return
 		case evt := <-e.updates:
+			e.history[evt.Id] = append(e.history[evt.Id], evt)
 			if err := e.update(ctx, evt); err != nil {
-				log.Printf("event broadcast: update: %v\n", err)
+				log.Error().Err(err).Interface("event", evt).Msg("event broadcast: update")
 			}
 		case id := <-e.reset:
 			delete(e.history, id)
@@ -175,7 +171,7 @@ func (e *events) update(ctx context.Context, evt *pb.ConnectionStatusUpdate) err
 			cleanup = append(cleanup, sub)
 			continue
 		case <-time.After(updateDeadline):
-			log.Println("timeout updating subscriber")
+			log.Error().Msg("timeout updating subscriber")
 			cleanup = append(cleanup, sub)
 			continue
 		case sub.ch <- evt:
