@@ -119,7 +119,7 @@ message ConnectionStatusUpdate {
     CONNECTION_STATUS_DISCONNECTED = 4;
     // listener is up; peer_addr would not be set
     CONNECTION_STATUS_LISTENING = 5;
-    // listener is closed; peer_addr would be set
+    // listener is closed; peer_addr would not be set
     CONNECTION_STATUS_CLOSED = 6;
   }
   ConnectionStatus status = 3;
