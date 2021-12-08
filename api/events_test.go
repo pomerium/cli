@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	pb "github.com/pomerium/cli/proto"
@@ -30,7 +31,7 @@ func TestEventsBroadcast(t *testing.T) {
 				idx := fmt.Sprintf("id%d", id)
 				evt := &pb.ConnectionStatusUpdate{
 					Id:       idx,
-					PeerAddr: fmt.Sprintf("localhost:999%d", peer),
+					PeerAddr: proto.String(fmt.Sprintf("localhost:999%d", peer)),
 					Status:   status,
 				}
 				expect[idx] = append(expect[idx], evt)

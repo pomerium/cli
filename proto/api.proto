@@ -110,13 +110,17 @@ message ConnectionStatusUpdate {
   string id = 1;
   // peer_addr represents connecting party remote address and may be used to
   // distinguish between individual TCP connections
-  string peer_addr = 2;
+  optional string peer_addr = 2;
   enum ConnectionStatus {
     CONNECTION_STATUS_UNDEFINED = 0;
     CONNECTION_STATUS_CONNECTING = 1;
     CONNECTION_STATUS_AUTH_REQUIRED = 2;
     CONNECTION_STATUS_CONNECTED = 3;
     CONNECTION_STATUS_DISCONNECTED = 4;
+    // listener is up; peer_addr would not be set
+    CONNECTION_STATUS_LISTENING = 5;
+    // listener is closed; peer_addr would be set
+    CONNECTION_STATUS_CLOSED = 6;
   }
   ConnectionStatus status = 3;
   // in case the connection failed or terminated, last error may be available

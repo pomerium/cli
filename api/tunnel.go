@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/pomerium/cli/proto"
@@ -100,6 +102,9 @@ func getTLSConfig(conn *pb.Connection) (*tls.Config, error) {
 }
 
 func tunnelAcceptLoop(ctx context.Context, id string, li net.Listener, tun Tunnel, b EventBroadcaster) {
+	evt := &tunnelEvents{EventBroadcaster: b, id: id}
+	evt.onListening(ctx)
+
 	bo := backoff.NewExponentialBackOff()
 	bo.MaxElapsedTime = 0
 
@@ -108,6 +113,7 @@ func tunnelAcceptLoop(ctx context.Context, id string, li net.Listener, tun Tunne
 		if err != nil {
 			// canceled, so ignore the error and return
 			if ctx.Err() != nil {
+				evt.onTunnelClosed()
 				return
 			}
 
@@ -126,12 +132,7 @@ func tunnelAcceptLoop(ctx context.Context, id string, li net.Listener, tun Tunne
 		go func(conn net.Conn) {
 			defer func() { _ = conn.Close() }()
 
-			evt := &tunnelEvents{
-				EventBroadcaster: b,
-				id:               id,
-				peer:             conn.RemoteAddr().String(),
-			}
-			err := tun.Run(ctx, conn, evt)
+			err := tun.Run(ctx, conn, evt.withPeer(conn))
 			if err != nil {
 				log.Printf("error serving local connection %s: %v\n", id, err)
 			}
@@ -140,55 +141,75 @@ func tunnelAcceptLoop(ctx context.Context, id string, li net.Listener, tun Tunne
 }
 
 type tunnelEvents struct {
-	context.Context
 	EventBroadcaster
-	id, peer string
+	id   string
+	peer *string
+}
+
+func (evt *tunnelEvents) withPeer(conn net.Conn) *tunnelEvents {
+	ne := *evt
+	ne.peer = proto.String(conn.RemoteAddr().String())
+	return &ne
+}
+
+func (evt *tunnelEvents) update(ctx context.Context, upd *pb.ConnectionStatusUpdate) {
+	upd.Ts = timestamppb.Now()
+	upd.PeerAddr = evt.peer
+	upd.Id = evt.id
+	if err := evt.Update(ctx, upd); err != nil {
+		log.Printf("failed to send status update %s: %v\n", protojson.Format(upd), err)
+	}
+}
+
+func (evt *tunnelEvents) onListening(ctx context.Context) {
+	if err := evt.Reset(ctx, evt.id); err != nil {
+		log.Printf("failed to reset connection history for %s: %v\n", evt.id, err)
+	}
+	evt.update(ctx, &pb.ConnectionStatusUpdate{
+		Status: pb.ConnectionStatusUpdate_CONNECTION_STATUS_LISTENING,
+	})
+}
+
+func (evt *tunnelEvents) onTunnelClosed() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	evt.update(ctx, &pb.ConnectionStatusUpdate{
+		Status: pb.ConnectionStatusUpdate_CONNECTION_STATUS_CLOSED,
+	})
 }
 
 // OnConnecting is called when listener is accepting a new connection from client
 func (evt *tunnelEvents) OnConnecting(ctx context.Context) {
-	_ = evt.Update(ctx, &pb.ConnectionStatusUpdate{
-		Id:       evt.id,
-		PeerAddr: evt.peer,
-		Status:   pb.ConnectionStatusUpdate_CONNECTION_STATUS_CONNECTING,
-		Ts:       timestamppb.Now(),
+	evt.update(ctx, &pb.ConnectionStatusUpdate{
+		Status: pb.ConnectionStatusUpdate_CONNECTION_STATUS_CONNECTING,
 	})
 }
 
 // OnConnected is called when a connection is successfully
 // established to the remote destination via pomerium proxy
 func (evt *tunnelEvents) OnConnected(ctx context.Context) {
-	_ = evt.Update(ctx, &pb.ConnectionStatusUpdate{
-		Id:       evt.id,
-		PeerAddr: evt.peer,
-		Status:   pb.ConnectionStatusUpdate_CONNECTION_STATUS_CONNECTED,
-		Ts:       timestamppb.Now(),
+	evt.update(ctx, &pb.ConnectionStatusUpdate{
+		Status: pb.ConnectionStatusUpdate_CONNECTION_STATUS_CONNECTED,
 	})
 }
 
 // OnAuthRequired is called after listener accepted a new connection from client,
 // but has to perform user authentication first
 func (evt *tunnelEvents) OnAuthRequired(ctx context.Context, u string) {
-	_ = evt.Update(ctx, &pb.ConnectionStatusUpdate{
-		Id:       evt.id,
-		PeerAddr: evt.peer,
-		Status:   pb.ConnectionStatusUpdate_CONNECTION_STATUS_AUTH_REQUIRED,
-		AuthUrl:  &u,
-		Ts:       timestamppb.Now(),
+	evt.update(ctx, &pb.ConnectionStatusUpdate{
+		Status:  pb.ConnectionStatusUpdate_CONNECTION_STATUS_AUTH_REQUIRED,
+		AuthUrl: &u,
 	})
 }
 
 // OnDisconnected is called when connection to client was closed
 func (evt *tunnelEvents) OnDisconnected(ctx context.Context, err error) {
 	e := &pb.ConnectionStatusUpdate{
-		Id:       evt.id,
-		PeerAddr: evt.peer,
-		Status:   pb.ConnectionStatusUpdate_CONNECTION_STATUS_DISCONNECTED,
-		Ts:       timestamppb.Now(),
+		Status: pb.ConnectionStatusUpdate_CONNECTION_STATUS_DISCONNECTED,
 	}
 	if err != nil {
 		txt := err.Error()
 		e.LastError = &txt
 	}
-	_ = evt.Update(ctx, e)
+	evt.update(ctx, e)
 }
