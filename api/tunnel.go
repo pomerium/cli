@@ -132,10 +132,12 @@ func tunnelAcceptLoop(ctx context.Context, id string, li net.Listener, tun Tunne
 		go func(conn net.Conn) {
 			defer func() { _ = conn.Close() }()
 
-			err := tun.Run(ctx, conn, evt.withPeer(conn))
+			cEvt := evt.withPeer(conn)
+			err := tun.Run(ctx, conn, cEvt)
 			if err != nil {
 				log.Printf("error serving local connection %s: %v\n", id, err)
 			}
+			cEvt.OnDisconnected(ctx, err)
 		}(c)
 	}
 }
