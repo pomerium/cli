@@ -28,5 +28,3 @@ Flags:
   -h, --help      help for pomerium-cli
   -v, --version   version for pomerium-cli
 ```
-
-
