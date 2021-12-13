@@ -1,10 +1,10 @@
 # Pomerium Command Line Client
 
-The Pomerium Command Line Client (CLI) is a helper client-side application for [Pomerium](https://pomerium.com).
+The Pomerium Command Line Client (CLI) is a client-side helper application for [Pomerium](https://pomerium.com). It's used to generate encrypted and authenticated connections for services that are not accessed through a web browser.
 
 ## Installation
 
-Installation instructions are available [here](https://www.pomerium.com/docs/releases.html#pomerium-cli).
+Installation instructions are available in the [Pomerium Docs](https://www.pomerium.com/docs/releases.html#pomerium-cli).
 
 ## Usage
 
