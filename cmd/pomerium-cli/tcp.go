@@ -34,8 +34,9 @@ func init() {
 }
 
 var tcpCmd = &cobra.Command{
-	Use:  "tcp destination",
-	Args: cobra.ExactArgs(1),
+	Use:   "tcp destination",
+	Short: "creates a TCP tunnel through Pomerium",
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		dstHost := args[0]
 		dstHostname, _, err := net.SplitHostPort(dstHost)
