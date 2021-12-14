@@ -24,11 +24,13 @@ func init() {
 }
 
 var kubernetesCmd = &cobra.Command{
-	Use: "k8s",
+	Use:   "k8s",
+	Short: "commands for the kubernetes credential plugin",
 }
 
 var kubernetesFlushCredentialsCmd = &cobra.Command{
-	Use: "flush-credentials [API Server URL]",
+	Use:   "flush-credentials [API Server URL]",
+	Short: "clear the kubernetes credentials for the given URL to force a new login",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			return clearAllCachedCredentials()
@@ -39,7 +41,8 @@ var kubernetesFlushCredentialsCmd = &cobra.Command{
 }
 
 var kubernetesExecCredentialCmd = &cobra.Command{
-	Use: "exec-credential",
+	Use:   "exec-credential",
+	Short: "run the kubernetes credential plugin for use with kubectl",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
 			return fmt.Errorf("server url is required")
