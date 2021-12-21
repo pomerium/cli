@@ -12,7 +12,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/martinlindhe/base36 v1.1.0
 	github.com/pomerium/pomerium v0.15.7-0.20211220031024-5e8fcf8d20a3
-	github.com/rs/zerolog v1.26.0
+	github.com/rs/zerolog v1.26.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.3.0
 	github.com/stretchr/testify v1.7.0
@@ -162,7 +162,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
-	golang.org/x/crypto v0.0.0-20211115234514-b4de73f9ece8 // indirect
+	golang.org/x/crypto v0.0.0-20211215165025-cf75a172585e // indirect
 	golang.org/x/mod v0.5.0 // indirect
 	golang.org/x/net v0.0.0-20211111083644-e5c967477495 // indirect
 	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d // indirect
