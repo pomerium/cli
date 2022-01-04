@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"time"
 
 	backoff "github.com/cenkalti/backoff/v4"
 
@@ -55,6 +54,9 @@ func (tun *Tunnel) RunListener(ctx context.Context, listenerAddress string) erro
 	bo := backoff.NewExponentialBackOff()
 	bo.MaxElapsedTime = 0
 
+	ticker := backoff.NewTicker(bo)
+	defer ticker.Stop()
+
 	for {
 		c, err := li.Accept()
 		if err != nil {
@@ -66,7 +68,7 @@ func (tun *Tunnel) RunListener(ctx context.Context, listenerAddress string) erro
 			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
 				log.Printf("temporarily failed to accept local connection: %v\n", err)
 				select {
-				case <-time.After(bo.NextBackOff()):
+				case <-ticker.C:
 				case <-ctx.Done():
 					return ctx.Err()
 				}
