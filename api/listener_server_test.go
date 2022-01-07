@@ -103,3 +103,56 @@ func TestListenerServer(t *testing.T) {
 		return true
 	}, time.Second*2, time.Millisecond*100)
 }
+
+func TestDeleteActiveListener(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	srv, err := api.NewServer(ctx)
+	require.NoError(t, err)
+
+	rec, err := srv.Upsert(ctx, &pb.Record{
+		Tags: []string{"test"},
+		Conn: &pb.Connection{
+			RemoteAddr: "tcp.localhost.pomerium.io:99",
+			ListenAddr: proto.String(":0"),
+		},
+	})
+	require.NoError(t, err)
+	id := rec.GetId()
+	require.NotEmpty(t, id)
+
+	status, err := srv.Update(ctx, &pb.ListenerUpdateRequest{
+		ConnectionIds: []string{id},
+		Connected:     true,
+	})
+	require.NoError(t, err)
+
+	cs, there := status.Listeners[id]
+	require.True(t, there)
+	require.NotNil(t, cs.ListenAddr)
+	require.True(t, cs.Listening)
+	require.Nil(t, cs.LastError)
+	listenAddr := *cs.ListenAddr
+
+	canListen := func() bool {
+		li, err := net.Listen("tcp", listenAddr)
+		if err != nil {
+			return false
+		}
+		li.Close()
+		return true
+	}
+
+	require.Eventually(t, func() bool {
+		return !canListen()
+	}, time.Second*2, time.Millisecond*100, "listener should be up")
+
+	_, err = srv.Delete(ctx, &pb.Selector{
+		Ids: []string{id},
+	})
+	require.NoError(t, err, "can delete")
+
+	// listener should be down
+	require.Eventually(t, canListen, time.Second*2, time.Millisecond*100, "listener should be down")
+}
