@@ -41,8 +41,16 @@ func (s *server) Delete(_ context.Context, sel *pb.Selector) (*pb.DeleteRecordsR
 		return nil, err
 	}
 
+	ids := make([]string, 0, len(recs))
 	for _, r := range recs {
-		if err = s.config.delete(r.GetId()); err != nil {
+		ids = append(ids, r.GetId())
+	}
+	if _, err = s.disconnectLocked(ids); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	for _, id := range ids {
+		if err = s.config.delete(id); err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	}
