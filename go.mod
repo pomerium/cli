@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/cenkalti/backoff/v4 v4.1.2
 	github.com/client9/misspell v0.3.4
-	github.com/go-chi/chi v1.5.4
+	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/golangci/golangci-lint v1.43.0
 	github.com/google/go-cmp v0.5.6
