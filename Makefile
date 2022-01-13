@@ -31,7 +31,7 @@ test: ## test everything
 
 .PHONY: lint
 lint: ## run go mod tidy
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint --timeout=120s run ./...
 
 .PHONY: tidy
 tidy: ## run go mod tidy
