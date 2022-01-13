@@ -1,6 +1,4 @@
-ARG ARCH
-
-FROM gcr.io/distroless/static:latest-${ARCH}
+FROM gcr.io/distroless/static:latest-${TARGETARCH:-amd64}
 WORKDIR /pomerium
 COPY pomerium* /bin/
 ENTRYPOINT [ "/bin/pomerium-cli" ]

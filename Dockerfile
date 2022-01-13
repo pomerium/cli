@@ -9,7 +9,7 @@ COPY . .
 # build
 RUN make
 
-FROM gcr.io/distroless/base:debug
+FROM gcr.io/distroless/base:debug-${TARGETARCH:-amd64}
 WORKDIR /pomerium
 COPY --from=build /go/src/github.com/pomerium/cli/bin/* /bin/
 ENTRYPOINT [ "/bin/pomerium-cli" ]
