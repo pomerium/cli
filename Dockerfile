@@ -7,7 +7,7 @@ RUN go mod download
 COPY . .
 
 # build
-RUN make
+RUN make build
 
 FROM gcr.io/distroless/base:debug-${TARGETARCH:-amd64}
 WORKDIR /pomerium
