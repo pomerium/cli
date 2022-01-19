@@ -39,3 +39,39 @@ func TestConfig(t *testing.T) {
 	assert.Empty(t, cfg.getTags())
 	assert.Empty(t, cfg.listAll())
 }
+
+func TestTags(t *testing.T) {
+	cfg := NewConfig()
+
+	require.Empty(t, cfg.getTags())
+	require.Empty(t, cfg.listAll())
+
+	for _, tags := range [][]string{
+		{"alpha", "bravo"},
+		{"alpha"},
+		{},
+		{"charlie", "delta"},
+		{"echo"},
+		{"echo", "foxtrot"},
+	} {
+		cfg.upsert(&pb.Record{
+			Id:   proto.String("a"),
+			Tags: tags,
+		})
+		assert.Empty(t, cmp.Diff(tags, cfg.getTags(),
+			cmpopts.SortSlices(func(a, b string) bool { return a < b })), tags)
+	}
+}
+
+func TestAssignID(t *testing.T) {
+	cfg := NewConfig()
+
+	assert.Empty(t, cfg.getTags())
+	assert.Empty(t, cfg.listAll())
+
+	rec := &pb.Record{
+		Tags: []string{"alpha"},
+	}
+	cfg.upsert(rec)
+	assert.NotEmpty(t, rec.Id)
+}
