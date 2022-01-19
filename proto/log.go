@@ -2,14 +2,17 @@ package proto
 
 import (
 	context "context"
+	"encoding/json"
 	"fmt"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -45,4 +48,26 @@ func UnaryLog(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, 
 	).Msg(info.FullMethod)
 
 	return res, err
+}
+
+// SentryErrorLog spools gRPC errors to Sentry
+func SentryErrorLog(client *sentry.Client) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		res, err := handler(ctx, req)
+		if status.Code(err) != codes.OK {
+			var data json.RawMessage
+			if msg, ok := req.(proto.Message); ok {
+				data, _ = protojson.Marshal(msg)
+			}
+			_ = client.CaptureEvent(&sentry.Event{
+				Message: fmt.Sprintf("gRPC method %s error %v", info.FullMethod, status.Code(err)),
+				Extra: map[string]interface{}{
+					"error":   err,
+					"request": json.RawMessage(data),
+				},
+			}, nil, nil)
+		}
+
+		return res, err
+	}
 }

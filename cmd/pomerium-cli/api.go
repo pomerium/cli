@@ -5,7 +5,9 @@ import (
 	"net"
 	"os"
 	"path"
+	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -24,6 +26,7 @@ type apiCmd struct {
 	grpcAddr    string
 	configPath  string
 	browserCmd  string
+	sentryDSN   string
 
 	cobra.Command
 }
@@ -47,6 +50,7 @@ func apiCommand() *cobra.Command {
 	flags.StringVar(&cmd.grpcAddr, "grpc-addr", "127.0.0.1:8800", "address json api server should listen to")
 	flags.StringVar(&cmd.configPath, "config-path", cfgDir, "path to config file")
 	flags.StringVar(&cmd.browserCmd, "browser-cmd", "", "use specific browser app")
+	flags.StringVar(&cmd.sentryDSN, "sentry-dsn", "", "if provided, report errors to Sentry")
 	return &cmd.Command
 }
 
@@ -59,11 +63,28 @@ func (cmd *apiCmd) makeConfigPath() error {
 }
 
 func (cmd *apiCmd) exec(c *cobra.Command, args []string) error {
-	if err := cmd.makeConfigPath(); err != nil {
+	var err error
+	if err = cmd.makeConfigPath(); err != nil {
 		return fmt.Errorf("config %s: %w", cmd.configPath, err)
 	}
 
-	srv, err := api.NewServer(c.Context(),
+	var sentryClient *sentry.Client
+	if cmd.sentryDSN != "" {
+		if sentryClient, err = sentry.NewClient(sentry.ClientOptions{
+			Dsn: cmd.sentryDSN,
+		}); err != nil {
+			log.Error().Err(err).Msg("could not initialize Sentry")
+		} else {
+			log.Debug().Msg("sentry enabled")
+			defer func() {
+				log.Info().Msg("waiting for Sentry to flush events...")
+				_ = sentryClient.Flush(time.Second * 2)
+			}()
+		}
+	}
+
+	ctx := c.Context()
+	srv, err := api.NewServer(ctx,
 		api.WithConfigProvider(api.FileConfigProvider(cmd.configPath)),
 		api.WithBrowserCommand(cmd.browserCmd),
 	)
@@ -71,7 +92,6 @@ func (cmd *apiCmd) exec(c *cobra.Command, args []string) error {
 		return err
 	}
 
-	ctx := c.Context()
 	lCfg := new(net.ListenConfig)
 	lis, err := lCfg.Listen(ctx, "tcp", cmd.grpcAddr)
 	if err != nil {
@@ -79,12 +99,21 @@ func (cmd *apiCmd) exec(c *cobra.Command, args []string) error {
 	}
 	log.Info().Str("address", lis.Addr().String()).Msg("starting gRPC server")
 
+	interceptors := []grpc.UnaryServerInterceptor{pb.UnaryLog}
+	if sentryClient != nil {
+		interceptors = append(interceptors, pb.SentryErrorLog(sentryClient))
+	}
 	opts := []grpc.ServerOption{
-		grpc.UnaryInterceptor(pb.UnaryLog),
+		grpc.ChainUnaryInterceptor(interceptors...),
 	}
 	grpcSrv := grpc.NewServer(opts...)
 	pb.RegisterConfigServer(grpcSrv, srv)
 	pb.RegisterListenerServer(grpcSrv, srv)
 	reflection.Register(grpcSrv)
+
+	go func() {
+		<-ctx.Done()
+		grpcSrv.Stop()
+	}()
 	return grpcSrv.Serve(lis)
 }

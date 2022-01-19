@@ -2,9 +2,13 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -22,10 +26,25 @@ var rootCmd = &cobra.Command{
 func main() {
 	setupLogger()
 
-	err := rootCmd.Execute()
+	err := rootCmd.ExecuteContext(signalContext())
 	if err != nil {
 		log.Error().Err(err).Msg("exit")
 	}
+}
+
+func signalContext() context.Context {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		sig := <-sigs
+		log.Error().Str("signal", sig.String()).Msg("caught signal, quitting...")
+		cancel()
+		time.Sleep(time.Second * 2)
+		log.Error().Msg("did not shut down gracefully, exit")
+		os.Exit(1)
+	}()
+	return ctx
 }
 
 func setupLogger() {

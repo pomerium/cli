@@ -21,7 +21,10 @@ require (
 	google.golang.org/protobuf v1.27.1
 )
 
-require github.com/go-chi/chi/v5 v5.0.7
+require (
+	github.com/getsentry/sentry-go v0.12.0
+	github.com/go-chi/chi/v5 v5.0.7
+)
 
 require (
 	4d63.com/gochecknoglobals v0.1.0 // indirect
