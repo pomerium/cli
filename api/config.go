@@ -118,6 +118,14 @@ func (cfg *config) upsert(r *pb.Record) {
 		r.Conn = current.Conn
 	}
 	cfg.byID[id] = r
+
+	// remove current tag assignments
+	if current != nil {
+		for _, t := range current.Tags {
+			delete(cfg.byTag[t], id)
+		}
+	}
+	// set new tag assignments
 	for _, t := range r.Tags {
 		m := cfg.byTag[t]
 		if m == nil {
@@ -125,6 +133,12 @@ func (cfg *config) upsert(r *pb.Record) {
 			cfg.byTag[t] = m
 		}
 		m[id] = r
+	}
+	// rm empty tag assignments
+	for tag, m := range cfg.byTag {
+		if len(m) == 0 {
+			delete(cfg.byTag, tag)
+		}
 	}
 }
 
@@ -185,8 +199,10 @@ func (cfg *config) listByTags(tags []string) ([]*pb.Record, error) {
 
 func (cfg *config) getTags() []string {
 	tags := make([]string, 0, len(cfg.byTag))
-	for tag := range cfg.byTag {
-		tags = append(tags, tag)
+	for tag, m := range cfg.byTag {
+		if len(m) > 0 {
+			tags = append(tags, tag)
+		}
 	}
 	return tags
 }
