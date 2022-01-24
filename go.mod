@@ -7,7 +7,7 @@ require (
 	github.com/client9/misspell v0.3.4
 	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/golangci/golangci-lint v1.43.0
-	github.com/google/go-cmp v0.5.6
+	github.com/google/go-cmp v0.5.7
 	github.com/google/uuid v1.3.0
 	github.com/martinlindhe/base36 v1.1.0
 	github.com/pomerium/pomerium v0.15.7-0.20211220031024-5e8fcf8d20a3
