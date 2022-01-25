@@ -128,6 +128,7 @@ dockers:
   - image_templates:
       - "pomerium/cli:amd64-{{ .Tag }}"
     dockerfile: Dockerfile.release
+    use: buildx
     build_flag_templates:
       - "--pull"
       - "--platform=linux/amd64"
@@ -143,6 +144,7 @@ dockers:
     image_templates:
       - "pomerium/cli:arm64v8-{{ .Tag }}"
     dockerfile: Dockerfile.release
+    use: buildx
     build_flag_templates:
       - "--pull"
       - "--platform=linux/arm64"
