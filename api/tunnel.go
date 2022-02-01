@@ -117,7 +117,7 @@ func tunnelAcceptLoop(ctx context.Context, id string, li net.Listener, tun Tunne
 				return
 			}
 
-			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 				log.Printf("failed to accept local connection: %v\n", err)
 				select {
 				case <-time.After(bo.NextBackOff()):

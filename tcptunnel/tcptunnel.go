@@ -63,7 +63,7 @@ func (tun *Tunnel) RunListener(ctx context.Context, listenerAddress string) erro
 				return nil
 			}
 
-			if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 				log.Printf("temporarily failed to accept local connection: %v\n", err)
 				select {
 				case <-time.After(bo.NextBackOff()):
