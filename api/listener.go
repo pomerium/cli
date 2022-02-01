@@ -5,11 +5,12 @@ import (
 	"errors"
 
 	pb "github.com/pomerium/cli/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type listenerStatusEntry struct {
 	context.CancelFunc
-	pb.ListenerStatus
+	*pb.ListenerStatus
 }
 
 type listenerStatus map[string]listenerStatusEntry
@@ -23,7 +24,7 @@ func (l listenerStatus) SetListening(id string, cancel context.CancelFunc, addr 
 		return errAlreadyListening
 	}
 
-	l[id] = listenerStatusEntry{cancel, pb.ListenerStatus{
+	l[id] = listenerStatusEntry{cancel, &pb.ListenerStatus{
 		Listening:  true,
 		ListenAddr: &addr,
 	}}
@@ -35,7 +36,7 @@ func (l listenerStatus) GetListenerStatus(id string) *pb.ListenerStatus {
 	if !there {
 		return &pb.ListenerStatus{}
 	}
-	return &rec.ListenerStatus
+	return proto.Clone(rec.ListenerStatus).(*pb.ListenerStatus)
 }
 
 func (l listenerStatus) SetNotListening(id string) error {
@@ -54,7 +55,7 @@ func (l listenerStatus) SetListenerError(id string, err error) error {
 	}
 	txt := err.Error()
 	l[id] = listenerStatusEntry{
-		ListenerStatus: pb.ListenerStatus{LastError: &txt},
+		ListenerStatus: &pb.ListenerStatus{LastError: &txt},
 	}
 	return nil
 }
