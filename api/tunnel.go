@@ -90,8 +90,14 @@ func getTLSConfig(conn *pb.Connection) (*tls.Config, error) {
 		return cfg, nil
 	}
 
-	if conn.TlsClientCert != nil || conn.TlsClientKey != nil {
-		cert, err := tls.X509KeyPair(conn.TlsClientCert, conn.TlsClientKey)
+	if conn.ClientCert != nil {
+		if len(conn.ClientCert.Cert) == 0 {
+			return nil, fmt.Errorf("client cert: certificate is missing")
+		}
+		if len(conn.ClientCert.Key) == 0 {
+			return nil, fmt.Errorf("client cert: key is missing")
+		}
+		cert, err := tls.X509KeyPair(conn.ClientCert.Cert, conn.ClientCert.Key)
 		if err != nil {
 			return nil, fmt.Errorf("client cert: %w", err)
 		}
