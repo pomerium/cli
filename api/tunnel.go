@@ -90,6 +90,14 @@ func getTLSConfig(conn *pb.Connection) (*tls.Config, error) {
 		return cfg, nil
 	}
 
+	if conn.TlsClientCert != nil || conn.TlsClientKey != nil {
+		cert, err := tls.X509KeyPair(conn.TlsClientCert, conn.TlsClientKey)
+		if err != nil {
+			return nil, fmt.Errorf("client cert: %w", err)
+		}
+		cfg.Certificates = append(cfg.Certificates, cert)
+	}
+
 	rootCA, err := x509.SystemCertPool()
 	if err != nil {
 		return nil, fmt.Errorf("get system cert pool: %w", err)

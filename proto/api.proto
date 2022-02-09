@@ -145,4 +145,6 @@ message Connection {
     bool disable_tls_verification = 5;
     bytes ca_cert = 6;
   }
+  optional bytes tls_client_cert = 7;
+  optional bytes tls_client_key = 8;
 }

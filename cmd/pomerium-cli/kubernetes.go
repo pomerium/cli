@@ -61,7 +61,10 @@ var kubernetesExecCredentialCmd = &cobra.Command{
 
 		var tlsConfig *tls.Config
 		if serverURL.Scheme == "https" {
-			tlsConfig = getTLSConfig()
+			tlsConfig, err = getTLSConfig()
+			if err != nil {
+				return err
+			}
 		}
 
 		ac := authclient.New(
