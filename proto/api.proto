@@ -189,6 +189,9 @@ message CertificateInfo {
   repeated string excluded_email_addresses = 20;
   repeated string permitted_uri_domains = 21;
   repeated string excluded_uri_domains = 22;
+
+  // error is set if there was an error parsing provided certificate
+  optional string error = 23;
 }
 
 message Certificate {

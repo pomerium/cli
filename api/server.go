@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/golang/groupcache/lru"
 	pb "github.com/pomerium/cli/proto"
 	"github.com/pomerium/cli/tcptunnel"
 )
@@ -52,6 +53,7 @@ type server struct {
 	ListenerStatus
 	*config
 	browserCmd string
+	certInfo   *lru.Cache
 }
 
 var (
@@ -65,6 +67,7 @@ func NewServer(ctx context.Context, opts ...ServerOption) (Server, error) {
 	srv := &server{
 		ListenerStatus:   newListenerStatus(),
 		EventBroadcaster: NewEventsBroadcaster(ctx),
+		certInfo:         lru.New(256),
 	}
 
 	for _, opt := range append(opts,
