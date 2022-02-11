@@ -64,7 +64,10 @@ var tcpCmd = &cobra.Command{
 
 		var tlsConfig *tls.Config
 		if pomeriumURL.Scheme == "https" {
-			tlsConfig = getTLSConfig()
+			tlsConfig, err = getTLSConfig()
+			if err != nil {
+				return err
+			}
 		}
 
 		c := make(chan os.Signal, 1)

@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,14 +24,21 @@ func (s *server) List(_ context.Context, sel *pb.Selector) (*pb.Records, error) 
 }
 
 func (s *server) listLocked(sel *pb.Selector) ([]*pb.Record, error) {
+	var records []*pb.Record
+	var err error
 	if sel.GetAll() {
-		return s.config.listAll(), nil
+		records, err = s.config.listAll(), nil
 	} else if len(sel.GetIds()) > 0 {
-		return s.config.listByIDs(sel.GetIds())
+		records, err = s.config.listByIDs(sel.GetIds())
 	} else if len(sel.GetTags()) > 0 {
-		return s.config.listByTags(sel.GetTags())
+		records, err = s.config.listByTags(sel.GetTags())
+	} else {
+		return nil, status.Error(codes.InvalidArgument, "either all, ids or tags filter must be specified")
 	}
-	return nil, status.Error(codes.InvalidArgument, "either all, ids or tags filter must be specified")
+	if err != nil {
+		return nil, err
+	}
+	return withCertInfo(s.certInfo, records), nil
 }
 
 func (s *server) Delete(_ context.Context, sel *pb.Selector) (*pb.DeleteRecordsResponse, error) {
@@ -62,6 +71,17 @@ func (s *server) Upsert(_ context.Context, r *pb.Record) (*pb.Record, error) {
 	s.Lock()
 	defer s.Unlock()
 
+	if r.Conn != nil && r.Conn.ClientCert != nil {
+		_, err := tls.X509KeyPair(r.Conn.ClientCert.Cert, r.Conn.ClientCert.Key)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("client cert: %s", err.Error()))
+		}
+		info, err := getCertInfo(s.certInfo, r.Conn.ClientCert.Cert)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("client cert info: %s", err.Error()))
+		}
+		r.Conn.ClientCert.Info = info
+	}
 	if err := s.config.clearTags(r); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
