@@ -86,9 +86,6 @@ func getTLSConfig(conn *pb.Connection) (*tls.Config, error) {
 		//nolint: gosec
 		InsecureSkipVerify: conn.GetDisableTlsVerification(),
 	}
-	if len(conn.GetCaCert()) == 0 {
-		return cfg, nil
-	}
 
 	if conn.ClientCert != nil {
 		if len(conn.ClientCert.Cert) == 0 {
@@ -102,6 +99,10 @@ func getTLSConfig(conn *pb.Connection) (*tls.Config, error) {
 			return nil, fmt.Errorf("client cert: %w", err)
 		}
 		cfg.Certificates = append(cfg.Certificates, cert)
+	}
+
+	if len(conn.GetCaCert()) == 0 {
+		return cfg, nil
 	}
 
 	rootCA, err := x509.SystemCertPool()
