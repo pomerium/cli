@@ -13,7 +13,7 @@ require (
 	github.com/pomerium/pomerium v0.15.7-0.20211220031024-5e8fcf8d20a3
 	github.com/rs/zerolog v1.26.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/spf13/cobra v1.3.0
+	github.com/spf13/cobra v1.4.0
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.44.0
