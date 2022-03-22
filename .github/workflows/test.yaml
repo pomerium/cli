@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: cache go binaries
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache-go-bin
         with:
           path: ~/go/bin
