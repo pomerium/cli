@@ -104,7 +104,7 @@ func parseToken(rawjwt string) (*ExecCredential, error) {
 	}
 
 	expiresAt := time.Unix(claims.Expiry, 0)
-	if expiresAt.IsZero() {
+	if claims.Expiry == 0 {
 		expiresAt = time.Now().Add(time.Hour)
 	}
 
