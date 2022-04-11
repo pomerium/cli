@@ -20,7 +20,7 @@ jobs:
           private_key: ${{ secrets.BACKPORT_APP_PRIVATE_KEY }}
 
       - name: Backport
-        uses: tibdex/backport@v1
+        uses: tibdex/backport@v2
         with:
           github_token: ${{ steps.generate_token.outputs.token }}
           title_template: "{{originalTitle}}"
