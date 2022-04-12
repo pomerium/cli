@@ -42,7 +42,7 @@ builds:
       - -X github.com/pomerium/cli/version.Version={{.Version}}
       - -X github.com/pomerium/cli/version.GitCommit={{.ShortCommit}}
       - -X github.com/pomerium/cli/version.BuildMeta={{.Timestamp}}
-      - -X github.com/pomerium/cli/version.ProjectName=pomerium
+      - -X github.com/pomerium/cli/version.ProjectName=pomerium-cli
       - -X github.com/pomerium/cli/version.ProjectURL=https://www.pomerium.io
 
 archives:
