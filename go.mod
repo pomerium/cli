@@ -22,6 +22,7 @@ require (
 )
 
 require (
+	github.com/elazarl/goproxy v0.0.0-20220417044921-416226498f94
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
