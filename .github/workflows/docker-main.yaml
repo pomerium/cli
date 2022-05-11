@@ -38,7 +38,7 @@ jobs:
             type=ref,event=branch
 
       - name: Docker Publish - Main
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           file: ./Dockerfile
