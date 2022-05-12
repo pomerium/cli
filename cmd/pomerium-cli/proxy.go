@@ -39,9 +39,10 @@ func init() {
 }
 
 var proxyCmd = &cobra.Command{
-	Use:   "proxy",
-	Short: "creates a https proxy that proxies certain domains via a TCP tunnel through Pomerium",
-	Args:  cobra.ExactArgs(0),
+	Use:    "proxy",
+	Short:  "creates a https proxy that proxies certain domains via a TCP tunnel through Pomerium",
+	Args:   cobra.ExactArgs(0),
+	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		proxy := goproxy.NewProxyHttpServer()
 
