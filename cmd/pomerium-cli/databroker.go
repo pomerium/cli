@@ -181,11 +181,11 @@ func (cmd *dbSetCmd) exec(c *cobra.Command, args []string) error {
 
 	any := protoutil.NewAny(cfg)
 	resp, err := client.Put(ctx, &databroker.PutRequest{
-		Record: &databroker.Record{
+		Records: []*databroker.Record{{
 			Type: any.GetTypeUrl(),
 			Id:   args[0],
 			Data: any,
-		},
+		}},
 	})
 	if err != nil {
 		return fmt.Errorf("set config: %w", err)
