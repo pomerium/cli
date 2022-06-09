@@ -189,3 +189,62 @@ KSwExwUr94Fr+qoXl/okwJY=
 		}
 	})
 }
+
+func TestExportImport(t *testing.T) {
+	ctx := context.Background()
+
+	srv, err := api.NewServer(ctx, api.WithConfigProvider(new(api.MemCP)))
+	require.NoError(t, err, "load empty config")
+
+	var testRecords = []*pb.Record{
+		{
+			Tags: []string{"one"},
+			Conn: &pb.Connection{
+				Name:       proto.String("test one"),
+				RemoteAddr: "test1.another.domain.com",
+				ListenAddr: proto.String(":9993"),
+			},
+		},
+		{
+			Tags: []string{"one", "two"},
+			Conn: &pb.Connection{
+				Name:       proto.String("test two"),
+				RemoteAddr: "test2.some.domain.com",
+				ListenAddr: proto.String(":9991"),
+			},
+		},
+	}
+
+	for _, r := range testRecords {
+		r, err := srv.Upsert(ctx, r)
+		if assert.NoError(t, err) {
+			assert.NotNil(t, r.Id)
+		}
+	}
+
+	data, err := srv.Export(ctx, &pb.ExportRequest{Selector: &pb.Selector{All: true}})
+	require.NoError(t, err)
+
+	store := api.WithConfigProvider(new(api.MemCP))
+	srv, err = api.NewServer(ctx, store)
+	require.NoError(t, err, "recreate server")
+
+	recs, err := srv.List(ctx, &pb.Selector{All: true})
+	require.NoError(t, err)
+	require.Empty(t, recs.Records)
+
+	_, err = srv.Import(ctx, &pb.ImportRequest{Data: data.Data})
+	require.NoError(t, err)
+
+	recs, err = srv.List(ctx, &pb.Selector{All: true})
+	require.NoError(t, err)
+	require.Len(t, recs.Records, len(testRecords))
+
+	// reload server once again
+	srv, err = api.NewServer(ctx, store)
+	require.NoError(t, err, "recreate server")
+
+	recs, err = srv.List(ctx, &pb.Selector{All: true})
+	require.NoError(t, err)
+	require.Len(t, recs.Records, len(testRecords))
+}

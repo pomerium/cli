@@ -121,6 +121,11 @@ func (s *server) Import(_ context.Context, req *pb.ImportRequest) (*pb.ImportRes
 	if err := importRecords(s.config, req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
+
+	if err := s.config.save(s.ConfigProvider); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	return &pb.ImportResponse{}, nil
 }
 
