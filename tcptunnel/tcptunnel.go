@@ -154,6 +154,9 @@ func (tun *Tunnel) run(ctx context.Context, evt TunnelEvents, local io.ReadWrite
 	}()
 	switch res.StatusCode {
 	case http.StatusOK:
+	case http.StatusServiceUnavailable:
+		// don't delete the JWT if we get a service unavailable
+		return fmt.Errorf("invalid http response code: %s", res.Status)
 	case http.StatusMovedPermanently,
 		http.StatusFound,
 		http.StatusTemporaryRedirect,
