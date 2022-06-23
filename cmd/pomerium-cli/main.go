@@ -83,7 +83,7 @@ func getTLSConfig() (*tls.Config, error) {
 	if tlsOptions.disableTLSVerification {
 		cfg.InsecureSkipVerify = true
 	}
-	if tlsOptions.caCert != "" {
+	if tlsOptions.caCert != "" || tlsOptions.alternateCAPath != "" {
 		var err error
 		cfg.RootCAs, err = cryptutil.GetCertPool(tlsOptions.caCert, tlsOptions.alternateCAPath)
 		if err != nil {
