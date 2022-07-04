@@ -6,6 +6,7 @@ PKG := github.com/pomerium/cli
 BUILDDIR := ${PREFIX}/dist
 BINDIR := ${PREFIX}/bin
 
+VERSION := $(shell git describe --tags)
 GITCOMMIT := $(shell git rev-parse --short HEAD)
 BUILDMETA:=
 GITUNTRACKEDCHANGES := $(shell git status --porcelain --untracked-files=no)
@@ -14,6 +15,7 @@ ifneq ($(GITUNTRACKEDCHANGES),)
 endif
 
 CTIMEVAR=-X $(PKG)/version.GitCommit=$(GITCOMMIT) \
+	-X $(PKG)/version.Version=$(VERSION) \
 	-X $(PKG)/version.BuildMeta=$(BUILDMETA) \
 	-X $(PKG)/version.ProjectName=$(NAME) \
 	-X $(PKG)/version.ProjectURL=$(PKG)
