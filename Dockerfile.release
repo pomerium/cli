@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/static:latest-${TARGETARCH:-amd64}
+FROM gcr.io/distroless/static:latest@sha256:21d3f84a4f37c36199fd07ad5544dcafecc17776e3f3628baf9a57c8c0181b3f
 WORKDIR /pomerium
 COPY pomerium* /bin/
 ENTRYPOINT [ "/bin/pomerium-cli" ]
