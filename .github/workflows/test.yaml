@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-  pull_request:
+  pull_request: null
 
 jobs:
   test:
@@ -15,16 +15,16 @@ jobs:
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@84cbf8094393cdc5fe1fe1671ff2647332956b1a
         with:
           go-version: ${{ matrix.go-version }}
       - name: set env vars
         run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
         with:
           fetch-depth: 0
       - name: cache go binaries
-        uses: actions/cache@v3
+        uses: actions/cache@0865c47f36e68161719c5b124609996bb5c40129
         id: cache-go-bin
         with:
           path: ~/go/bin
@@ -39,18 +39,20 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@84cbf8094393cdc5fe1fe1671ff2647332956b1a
         with:
           go-version: 1.18.x
       - uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08
         with:
           python-version: "3.x"
-      - uses: pre-commit/action@release
+      - uses: pre-commit/action@cf04e2f8169912b1d83e0821974f3a1af8b3c873
         with:
-          extra_args: --show-diff-on-failure --from-ref ${{ github.event.pull_request.base.sha }} --to-ref ${{ github.event.pull_request.head.sha }}
+          extra_args: --show-diff-on-failure --from-ref ${{
+            github.event.pull_request.base.sha }} --to-ref ${{
+            github.event.pull_request.head.sha }}
         env:
           SKIP: lint
 
@@ -63,13 +65,13 @@ jobs:
     needs:
       - test
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@84cbf8094393cdc5fe1fe1671ff2647332956b1a
         with:
           go-version: 1.18.x
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
 
       - name: FOSSA Scan
-        uses: fossa-contrib/fossa-action@v1
+        uses: fossa-contrib/fossa-action@6cffaa064112e1cf9b5798c6224f9487dc1ec316
         with:
           fossa-api-key: 18f4ef488f514d06874b75f5809cea93
