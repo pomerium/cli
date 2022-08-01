@@ -5,7 +5,11 @@ go 1.18
 require (
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/client9/misspell v0.3.4
+	github.com/elazarl/goproxy v0.0.0-20220417044921-416226498f94
+	github.com/getsentry/sentry-go v0.13.0
+	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-jose/go-jose/v3 v3.0.0
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/golangci/golangci-lint v1.47.2
 	github.com/google/go-cmp v0.5.8
 	github.com/google/uuid v1.3.0
@@ -19,13 +23,6 @@ require (
 	google.golang.org/grpc v1.48.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.2.0
 	google.golang.org/protobuf v1.28.1
-)
-
-require (
-	github.com/elazarl/goproxy v0.0.0-20220417044921-416226498f94
-	github.com/getsentry/sentry-go v0.13.0
-	github.com/go-chi/chi/v5 v5.0.7
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 )
 
 require (
