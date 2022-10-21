@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -134,7 +133,7 @@ func (client *AuthClient) runOpenBrowser(ctx context.Context, li net.Listener, s
 		return fmt.Errorf("failed to get login url: %s", res.Status)
 	}
 
-	bs, err := ioutil.ReadAll(res.Body)
+	bs, err := io.ReadAll(res.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read login url: %w", err)
 	}
