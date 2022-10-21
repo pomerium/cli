@@ -35,7 +35,7 @@ lint: ## run go mod tidy
 
 .PHONY: tidy
 tidy: ## run go mod tidy
-	go mod tidy -compat=1.18
+	go mod tidy -compat=1.19
 
 .PHONY: tools
 tools: ## generate protobuff files

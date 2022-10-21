@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -67,7 +66,7 @@ func (cache *LocalJWTCache) DeleteJWT(key string) error {
 // LoadJWT loads a raw JWT from the local cache.
 func (cache *LocalJWTCache) LoadJWT(key string) (rawJWT string, err error) {
 	path := filepath.Join(cache.dir, cache.fileName(key))
-	rawBS, err := ioutil.ReadFile(path)
+	rawBS, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return "", ErrNotFound
 	} else if err != nil {
@@ -81,7 +80,7 @@ func (cache *LocalJWTCache) LoadJWT(key string) (rawJWT string, err error) {
 // StoreJWT stores a raw JWT in the local cache.
 func (cache *LocalJWTCache) StoreJWT(key string, rawJWT string) error {
 	path := filepath.Join(cache.dir, cache.fileName(key))
-	err := ioutil.WriteFile(path, []byte(rawJWT), 0o600)
+	err := os.WriteFile(path, []byte(rawJWT), 0o600)
 	if err != nil {
 		return err
 	}
