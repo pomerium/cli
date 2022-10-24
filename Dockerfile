@@ -9,7 +9,7 @@ COPY . .
 # build
 RUN make build
 
-FROM gcr.io/distroless/base:debug@sha256:9681f07e699fa65958ef9b902399d618cb6a4638868d468cf730a2bafd8f3dcc
+FROM gcr.io/distroless/base:debug@sha256:856944e81ffb36babf549e52933e1c09379372135a9b73a97f275fa2973de13a
 WORKDIR /pomerium
 COPY --from=build /go/src/github.com/pomerium/cli/bin/* /bin/
 ENTRYPOINT [ "/bin/pomerium-cli" ]
