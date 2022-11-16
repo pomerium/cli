@@ -109,3 +109,16 @@ func addBrowserFlags(cmd *cobra.Command) {
 	flags.StringVar(&browserOptions.command, "browser-cmd", "",
 		"custom browser command to run when opening a URL")
 }
+
+var serviceAccountOptions struct {
+	serviceAccount     string
+	serviceAccountFile string
+}
+
+func addServiceAccountFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+	flags.StringVar(&serviceAccountOptions.serviceAccount, "service-account", "",
+		"the service account JWT to use for authentication")
+	flags.StringVar(&serviceAccountOptions.serviceAccountFile, "service-account-file", "",
+		"a file containing the service account JWT to use for authentication")
+}

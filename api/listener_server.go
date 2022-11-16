@@ -65,7 +65,7 @@ func (s *server) connectTunnelLocked(id string) (net.Addr, error) {
 		return nil, errNotFound
 	}
 
-	tun, listenAddr, err := newTunnel(rec.GetConn(), s.browserCmd)
+	tun, listenAddr, err := newTunnel(rec.GetConn(), s.browserCmd, s.serviceAccount, s.serviceAccountFile)
 	if err != nil {
 		return nil, err
 	}

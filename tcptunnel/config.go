@@ -8,11 +8,13 @@ import (
 )
 
 type config struct {
-	jwtCache      jwt.JWTCache
-	dstHost       string
-	proxyHost     string
-	tlsConfig     *tls.Config
-	browserConfig string
+	jwtCache           jwt.JWTCache
+	dstHost            string
+	proxyHost          string
+	serviceAccount     string
+	serviceAccountFile string
+	tlsConfig          *tls.Config
+	browserConfig      string
 }
 
 func getConfig(options ...Option) *config {
@@ -57,6 +59,20 @@ func WithJWTCache(jwtCache jwt.JWTCache) Option {
 func WithProxyHost(proxyHost string) Option {
 	return func(cfg *config) {
 		cfg.proxyHost = proxyHost
+	}
+}
+
+// WithServiceAccount sets the service account in the config.
+func WithServiceAccount(serviceAccount string) Option {
+	return func(cfg *config) {
+		cfg.serviceAccount = serviceAccount
+	}
+}
+
+// WithServiceAccountFile sets the service account file in the config.
+func WithServiceAccountFile(file string) Option {
+	return func(cfg *config) {
+		cfg.serviceAccountFile = file
 	}
 }
 
