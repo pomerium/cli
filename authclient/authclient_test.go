@@ -89,7 +89,7 @@ func TestAuthClient(t *testing.T) {
 		assert.Equal(t, "SERVICE_ACCOUNT", rawJWT)
 	})
 
-	t.Run("service account", func(t *testing.T) {
+	t.Run("service account file", func(t *testing.T) {
 		t.Parallel()
 
 		dir := t.TempDir()
