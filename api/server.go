@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/golang/groupcache/lru"
+
 	pb "github.com/pomerium/cli/proto"
 	"github.com/pomerium/cli/tcptunnel"
 )
@@ -20,8 +21,7 @@ type ConfigProvider interface {
 	Save([]byte) error
 }
 
-type Config interface {
-}
+type Config interface{}
 
 // ListenerStatus marks individual records as locked
 type ListenerStatus interface {
@@ -52,8 +52,10 @@ type server struct {
 	EventBroadcaster
 	ListenerStatus
 	*config
-	browserCmd string
-	certInfo   *lru.Cache
+	browserCmd         string
+	serviceAccount     string
+	serviceAccountFile string
+	certInfo           *lru.Cache
 }
 
 var (
@@ -109,6 +111,20 @@ func withDefaultConfigProvider() ServerOption {
 func WithBrowserCommand(cmd string) ServerOption {
 	return func(s *server) error {
 		s.browserCmd = cmd
+		return nil
+	}
+}
+
+func WithServiceAccount(serviceAccount string) ServerOption {
+	return func(s *server) error {
+		s.serviceAccount = serviceAccount
+		return nil
+	}
+}
+
+func WithServiceAccountFile(serviceAccountFile string) ServerOption {
+	return func(s *server) error {
+		s.serviceAccountFile = serviceAccountFile
 		return nil
 	}
 }

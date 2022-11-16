@@ -27,6 +27,7 @@ var proxyCmdOptions struct {
 }
 
 func init() {
+	addServiceAccountFlags(proxyCmd)
 	addTLSFlags(proxyCmd)
 	flags := proxyCmd.Flags()
 	flags.StringVar(&proxyCmdOptions.listen, "listen", "127.0.0.1:3128",
@@ -140,6 +141,8 @@ func newTCPTunnel(dstHost string, specificPomeriumURL string) (*tcptunnel.Tunnel
 	return tcptunnel.New(
 		tcptunnel.WithDestinationHost(net.JoinHostPort(dstHostname, dstPort)),
 		tcptunnel.WithProxyHost(pomeriumURL.Host),
+		tcptunnel.WithServiceAccount(serviceAccountOptions.serviceAccount),
+		tcptunnel.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
 		tcptunnel.WithTLSConfig(tlsConfig),
 	), nil
 }

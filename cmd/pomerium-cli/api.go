@@ -45,6 +45,7 @@ func apiCommand() *cobra.Command {
 	if err == nil {
 		cfgDir = path.Join(cfgDir, "PomeriumDesktop", "config.json")
 	}
+	addServiceAccountFlags(&cmd.Command)
 	flags := cmd.Flags()
 	flags.StringVar(&cmd.jsonRPCAddr, "json-addr", "127.0.0.1:8900", "address json api server should listen to")
 	flags.StringVar(&cmd.grpcAddr, "grpc-addr", "127.0.0.1:8800", "address json api server should listen to")
@@ -59,7 +60,7 @@ func (cmd *apiCmd) makeConfigPath() error {
 		return fmt.Errorf("config file path could not be determined")
 	}
 
-	return os.MkdirAll(path.Dir(cmd.configPath), 0700)
+	return os.MkdirAll(path.Dir(cmd.configPath), 0o700)
 }
 
 func (cmd *apiCmd) exec(c *cobra.Command, args []string) error {
@@ -87,6 +88,8 @@ func (cmd *apiCmd) exec(c *cobra.Command, args []string) error {
 	srv, err := api.NewServer(ctx,
 		api.WithConfigProvider(api.FileConfigProvider(cmd.configPath)),
 		api.WithBrowserCommand(cmd.browserCmd),
+		api.WithServiceAccount(serviceAccountOptions.serviceAccount),
+		api.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
 	)
 	if err != nil {
 		return err

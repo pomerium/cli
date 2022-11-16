@@ -33,6 +33,8 @@ func New(options ...Option) *Tunnel {
 		cfg: cfg,
 		auth: authclient.New(
 			authclient.WithBrowserCommand(cfg.browserConfig),
+			authclient.WithServiceAccount(cfg.serviceAccount),
+			authclient.WithServiceAccountFile(cfg.serviceAccountFile),
 			authclient.WithTLSConfig(cfg.tlsConfig)),
 	}
 }

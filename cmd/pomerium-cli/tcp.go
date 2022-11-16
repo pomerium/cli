@@ -23,8 +23,9 @@ var tcpCmdOptions struct {
 }
 
 func init() {
-	addTLSFlags(tcpCmd)
 	addBrowserFlags(tcpCmd)
+	addServiceAccountFlags(tcpCmd)
+	addTLSFlags(tcpCmd)
 	flags := tcpCmd.Flags()
 	flags.StringVar(&tcpCmdOptions.listen, "listen", "127.0.0.1:0",
 		"local address to start a listener on")
@@ -82,6 +83,8 @@ var tcpCmd = &cobra.Command{
 			tcptunnel.WithBrowserCommand(browserOptions.command),
 			tcptunnel.WithDestinationHost(dstHost),
 			tcptunnel.WithProxyHost(pomeriumURL.Host),
+			tcptunnel.WithServiceAccount(serviceAccountOptions.serviceAccount),
+			tcptunnel.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
 			tcptunnel.WithTLSConfig(tlsConfig),
 		)
 

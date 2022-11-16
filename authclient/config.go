@@ -7,8 +7,10 @@ import (
 )
 
 type config struct {
-	open      func(rawURL string) error
-	tlsConfig *tls.Config
+	open               func(rawURL string) error
+	serviceAccount     string
+	serviceAccountFile string
+	tlsConfig          *tls.Config
 }
 
 func getConfig(options ...Option) *config {
@@ -33,6 +35,20 @@ func WithBrowserCommand(browserCommand string) Option {
 				return open.RunWith(rawURL, browserCommand)
 			}
 		}
+	}
+}
+
+// WithServiceAccount sets the service account in the config.
+func WithServiceAccount(serviceAccount string) Option {
+	return func(cfg *config) {
+		cfg.serviceAccount = serviceAccount
+	}
+}
+
+// WithServiceAccountFile sets the service account file in the config.
+func WithServiceAccountFile(file string) Option {
+	return func(cfg *config) {
+		cfg.serviceAccountFile = file
 	}
 }
 

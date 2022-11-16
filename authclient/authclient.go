@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -28,6 +29,18 @@ func New(options ...Option) *AuthClient {
 
 // GetJWT retrieves a JWT from Pomerium.
 func (client *AuthClient) GetJWT(ctx context.Context, serverURL *url.URL, onOpenBrowser func(string)) (rawJWT string, err error) {
+	if client.cfg.serviceAccount != "" {
+		return client.cfg.serviceAccount, nil
+	}
+
+	if client.cfg.serviceAccountFile != "" {
+		rawJWTBytes, err := os.ReadFile(client.cfg.serviceAccountFile)
+		if err != nil {
+			return "", err
+		}
+		return strings.TrimSpace(string(rawJWTBytes)), nil
+	}
+
 	li, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", fmt.Errorf("failed to start listener: %w", err)
