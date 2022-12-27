@@ -5,11 +5,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"net"
-	"net/url"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -39,32 +36,13 @@ var tcpCmd = &cobra.Command{
 	Short: "creates a TCP tunnel through Pomerium",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		dstHost := args[0]
-		dstHostname, _, err := net.SplitHostPort(dstHost)
+		destinationAddr, proxyURL, err := tcptunnel.ParseURLs(args[0], tcpCmdOptions.pomeriumURL)
 		if err != nil {
-			return fmt.Errorf("invalid destination: %w", err)
-		}
-
-		pomeriumURL := &url.URL{
-			Scheme: "https",
-			Host:   net.JoinHostPort(dstHostname, "443"),
-		}
-		if tcpCmdOptions.pomeriumURL != "" {
-			pomeriumURL, err = url.Parse(tcpCmdOptions.pomeriumURL)
-			if err != nil {
-				return fmt.Errorf("invalid pomerium URL: %w", err)
-			}
-			if !strings.Contains(pomeriumURL.Host, ":") {
-				if pomeriumURL.Scheme == "https" {
-					pomeriumURL.Host = net.JoinHostPort(pomeriumURL.Hostname(), "443")
-				} else {
-					pomeriumURL.Host = net.JoinHostPort(pomeriumURL.Hostname(), "80")
-				}
-			}
+			return err
 		}
 
 		var tlsConfig *tls.Config
-		if pomeriumURL.Scheme == "https" {
+		if proxyURL.Scheme == "https" {
 			tlsConfig, err = getTLSConfig()
 			if err != nil {
 				return err
@@ -81,8 +59,8 @@ var tcpCmd = &cobra.Command{
 
 		tun := tcptunnel.New(
 			tcptunnel.WithBrowserCommand(browserOptions.command),
-			tcptunnel.WithDestinationHost(dstHost),
-			tcptunnel.WithProxyHost(pomeriumURL.Host),
+			tcptunnel.WithDestinationHost(destinationAddr),
+			tcptunnel.WithProxyHost(proxyURL.Host),
 			tcptunnel.WithServiceAccount(serviceAccountOptions.serviceAccount),
 			tcptunnel.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
 			tcptunnel.WithTLSConfig(tlsConfig),
