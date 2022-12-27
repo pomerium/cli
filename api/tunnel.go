@@ -26,13 +26,13 @@ func newTunnel(conn *pb.Connection, browserCmd, serviceAccount, serviceAccountFi
 		listenAddr = *conn.ListenAddr
 	}
 
-	pxy, err := getProxy(conn)
+	destinationAddr, proxyURL, err := tcptunnel.ParseURLs(conn.GetRemoteAddr(), conn.GetPomeriumUrl())
 	if err != nil {
-		return nil, "", fmt.Errorf("cannot determine proxy host: %w", err)
+		return nil, "", err
 	}
 
 	var tlsCfg *tls.Config
-	if pxy.Scheme == "https" {
+	if proxyURL.Scheme == "https" {
 		tlsCfg, err = getTLSConfig(conn)
 		if err != nil {
 			return nil, "", fmt.Errorf("tls: %w", err)
@@ -40,8 +40,8 @@ func newTunnel(conn *pb.Connection, browserCmd, serviceAccount, serviceAccountFi
 	}
 
 	return tcptunnel.New(
-		tcptunnel.WithDestinationHost(conn.GetRemoteAddr()),
-		tcptunnel.WithProxyHost(pxy.Host),
+		tcptunnel.WithDestinationHost(destinationAddr),
+		tcptunnel.WithProxyHost(proxyURL.Host),
 		tcptunnel.WithServiceAccount(serviceAccount),
 		tcptunnel.WithServiceAccountFile(serviceAccountFile),
 		tcptunnel.WithTLSConfig(tlsCfg),
