@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/static:latest@sha256:c3c3d0230d487c0ad3a0d87ad03ee02ea2ff0b3dcce91ca06a1019e07de05f12
+FROM gcr.io/distroless/static:latest@sha256:11364b4198394878b7689ad61c5ea2aae2cd2ed127c09fc7b68ca8ed63219030
 WORKDIR /pomerium
 COPY pomerium* /bin/
 ENTRYPOINT [ "/bin/pomerium-cli" ]
