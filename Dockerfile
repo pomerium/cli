@@ -1,4 +1,4 @@
-FROM golang:latest@sha256:660f138b4477001d65324a51fa158c1b868651b44e43f0953bf062e9f38b72f3 as build
+FROM golang:latest@sha256:bb9811fad43a7d6fd2173248d8331b2dcf5ac9af20976b1937ecd214c5b8c383 as build
 WORKDIR /go/src/github.com/pomerium/cli
 
 # cache depedency downloads
