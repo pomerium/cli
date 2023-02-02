@@ -64,6 +64,10 @@ func (s *server) Delete(_ context.Context, sel *pb.Selector) (*pb.DeleteRecordsR
 		}
 	}
 
+	if err := s.config.save(s.ConfigProvider); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	return &pb.DeleteRecordsResponse{}, nil
 }
 
