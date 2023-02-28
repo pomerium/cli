@@ -513,8 +513,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/polyfloyd/go-errorlint v1.1.0 h1:VKoEFg5yxSgJ2yFPVhxW7oGz+f8/OVcuMeNvcPIi6Eg=
 github.com/polyfloyd/go-errorlint v1.1.0/go.mod h1:Uss7Bc/izYG0leCMRx3WVlrpqWedSZk7V/FUQW6VJ6U=
-github.com/pomerium/pomerium v0.21.1 h1:IG6KyvURmHtQqSZN7dJpRMzMDhJCFQTL9lNJpAHRhO4=
-github.com/pomerium/pomerium v0.21.1/go.mod h1:ohDS94/wO5eGbtIVV9VSzlsIPE2+B7iBjChNZdfm8LU=
+github.com/pomerium/pomerium v0.21.2 h1:+YPQ+0zbxrBOvr3klxV9MUgosHmrJDiGMEmo26Fvb7Q=
+github.com/pomerium/pomerium v0.21.2/go.mod h1:ohDS94/wO5eGbtIVV9VSzlsIPE2+B7iBjChNZdfm8LU=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v1.0.0/go.mod h1:db9x61etRT2tGnBNRi70OPL5FsnadC4Ky3P0J6CfImo=
 github.com/prometheus/client_golang v1.7.1/go.mod h1:PY5Wy2awLA44sXw4AOSfFBetzPP4j5+D6mVACh+pe2M=
