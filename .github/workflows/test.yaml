@@ -20,7 +20,7 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: set env vars
         run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
         with:
           fetch-depth: 0
       - name: cache go binaries
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
         with:
           fetch-depth: 0
       - uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9
@@ -65,7 +65,7 @@ jobs:
         with:
           go-version: 1.19.x
 
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
 
       - name: FOSSA Scan
         uses: fossa-contrib/fossa-action@6728dc6fe9a068c648d080c33829ffbe56565023
