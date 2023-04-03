@@ -6,7 +6,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/client9/misspell v0.3.4
 	github.com/elazarl/goproxy v0.0.0-20220417044921-416226498f94
-	github.com/getsentry/sentry-go v0.19.0
+	github.com/getsentry/sentry-go v0.20.0
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
@@ -188,7 +188,7 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/exp v0.0.0-20220930202632-ec3f01382ef9 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.9.0 // indirect
