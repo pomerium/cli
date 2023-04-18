@@ -3,7 +3,7 @@ module github.com/pomerium/cli
 go 1.20
 
 require (
-	github.com/cenkalti/backoff/v4 v4.2.0
+	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/client9/misspell v0.3.4
 	github.com/elazarl/goproxy v0.0.0-20220417044921-416226498f94
 	github.com/getsentry/sentry-go v0.20.0
