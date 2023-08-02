@@ -7,7 +7,7 @@ require (
 	github.com/client9/misspell v0.3.4
 	github.com/elazarl/goproxy v0.0.0-20220417044921-416226498f94
 	github.com/getsentry/sentry-go v0.23.0
-	github.com/go-chi/chi/v5 v5.0.8
+	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/golangci/golangci-lint v1.53.3
