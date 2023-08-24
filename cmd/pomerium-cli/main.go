@@ -63,8 +63,7 @@ var tlsOptions struct {
 	caCert                 string
 	clientCertPath         string
 	clientKeyPath          string
-	clientCN               string
-	clientOU               string
+	clientCertFromSystem   bool
 }
 
 func addTLSFlags(cmd *cobra.Command) {
@@ -79,13 +78,11 @@ func addTLSFlags(cmd *cobra.Command) {
 		"(optional) PEM-encoded client certificate")
 	flags.StringVar(&tlsOptions.clientKeyPath, "client-key", "",
 		"(optional) PEM-encoded client certificate")
-	flags.StringVar(&tlsOptions.clientCN, "client-cn", "",
-		"(optional) common name of a client certificate stored in the certificate store")
-	flags.StringVar(&tlsOptions.clientOU, "client-ou", "",
-		"(optional) organizational unit of a client certificate stored in the certificate store")
+	flags.BoolVar(&tlsOptions.clientCertFromSystem, "client-cert-from-system", false,
+		"load client certificate and key from system trust store")
 }
 
-func getTLSConfig() (*tls.Config, error) {
+func getTLSConfig() (*tls.Config, func(), error) {
 	cfg := new(tls.Config)
 	if tlsOptions.disableTLSVerification {
 		cfg.InsecureSkipVerify = true
@@ -94,26 +91,27 @@ func getTLSConfig() (*tls.Config, error) {
 		var err error
 		cfg.RootCAs, err = cryptutil.GetCertPool(tlsOptions.caCert, tlsOptions.alternateCAPath)
 		if err != nil {
-			return nil, fmt.Errorf("get CA cert: %w", err)
+			return nil, nil, fmt.Errorf("get CA cert: %w", err)
 		}
 	}
 	if tlsOptions.clientCertPath != "" || tlsOptions.clientKeyPath != "" {
 		cert, err := tls.LoadX509KeyPair(tlsOptions.clientCertPath, tlsOptions.clientKeyPath)
 		if err != nil {
-			return nil, fmt.Errorf("loading client cert: %w", err)
+			return nil, nil, fmt.Errorf("loading client cert: %w", err)
 		}
 		cfg.Certificates = append(cfg.Certificates, cert)
 	}
-	if tlsOptions.clientCN != "" || tlsOptions.clientOU != "" {
-		certs, err := keychain.LoadClientCertificates(tlsOptions.clientCN, tlsOptions.clientOU)
+	var cleanup func()
+	if tlsOptions.clientCertFromSystem {
+		var certs []tls.Certificate
+		var err error
+		certs, cleanup, err = keychain.LoadClientCertificates()
 		if err != nil {
-			return nil, fmt.Errorf("loading client cert: %w", err)
-		} else if len(certs) == 0 {
-			return nil, fmt.Errorf("no client certificates found that match cn=%s ou=%s", tlsOptions.clientCN, tlsOptions.clientOU)
+			return nil, nil, fmt.Errorf("loading client cert: %w", err)
 		}
 		cfg.Certificates = append(cfg.Certificates, certs...)
 	}
-	return cfg, nil
+	return cfg, cleanup, nil
 }
 
 var browserOptions struct {

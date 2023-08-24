@@ -62,9 +62,13 @@ var kubernetesExecCredentialCmd = &cobra.Command{
 
 		var tlsConfig *tls.Config
 		if serverURL.Scheme == "https" {
-			tlsConfig, err = getTLSConfig()
+			var cleanup func()
+			tlsConfig, cleanup, err = getTLSConfig()
 			if err != nil {
 				return err
+			}
+			if cleanup != nil {
+				defer cleanup()
 			}
 		}
 

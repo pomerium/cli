@@ -43,9 +43,13 @@ var tcpCmd = &cobra.Command{
 
 		var tlsConfig *tls.Config
 		if proxyURL.Scheme == "https" {
-			tlsConfig, err = getTLSConfig()
+			var cleanup func()
+			tlsConfig, cleanup, err = getTLSConfig()
 			if err != nil {
 				return err
+			}
+			if cleanup != nil {
+				defer cleanup()
 			}
 		}
 
@@ -73,7 +77,7 @@ var tcpCmd = &cobra.Command{
 		}
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-			os.Exit(1)
+			os.Exit(1) // XXX
 		}
 
 		return nil

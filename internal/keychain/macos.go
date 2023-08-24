@@ -26,7 +26,6 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -34,7 +33,6 @@ import (
 	"unsafe"
 )
 
-// XXX
 type keychainIdentity struct {
 	certificateRaw []byte
 	certificate    *x509.Certificate
@@ -46,7 +44,7 @@ func newKeychainIdentity(identity C.SecIdentityRef) (*keychainIdentity, error) {
 	// Extract certificate.
 	var c C.SecCertificateRef
 	if s := C.SecIdentityCopyCertificate(identity, &c); s != C.errSecSuccess {
-		return nil, toGoError(s)
+		return nil, toGoSecError(s)
 	}
 	defer C.CFRelease(C.CFTypeRef(c))
 	d := C.SecCertificateCopyData(c)
@@ -60,7 +58,7 @@ func newKeychainIdentity(identity C.SecIdentityRef) (*keychainIdentity, error) {
 	// Store private key reference.
 	var key C.SecKeyRef
 	if s := C.SecIdentityCopyPrivateKey(identity, &key); s != C.errSecSuccess {
-		return nil, toGoError(s)
+		return nil, toGoSecError(s)
 	}
 
 	return &keychainIdentity{
@@ -93,7 +91,8 @@ func (i *keychainIdentity) Sign(
 	rand io.Reader, digest []byte, opts crypto.SignerOpts,
 ) (signature []byte, err error) {
 
-	fmt.Println("XXX - keychainIdentity.Sign():", hex.EncodeToString(digest), opts)
+	//fmt.Println("XXX - keychainIdentity.Sign():", hex.EncodeToString(digest), opts)
+	//debug.PrintStack()
 
 	alg := i.algorithm(opts)
 	if alg == nullCFStringRef {
@@ -108,9 +107,12 @@ func (i *keychainIdentity) Sign(
 
 	var cfErr C.CFErrorRef
 	sig := C.SecKeyCreateSignature(i.key, alg, cfDigest, &cfErr)
+	defer C.CFRelease(C.CFTypeRef(sig))
 
-	if cfErr != 0 {
-		return nil, errors.New("couldn't sign") // XXX: translate error; release error?
+	if sig == 0 {
+		desc := C.CFErrorCopyDescription(cfErr)
+		defer C.CFRelease(C.CFTypeRef(desc))
+		return nil, fmt.Errorf("couldn't sign: %v", toGoString(desc))
 	}
 
 	return toGoBytes(sig), nil
@@ -132,8 +134,6 @@ func rsaAlgorithm(opts crypto.SignerOpts) C.SecKeyAlgorithm {
 	switch o := opts.(type) {
 	case *rsa.PSSOptions:
 		switch o.Hash {
-		case crypto.SHA224:
-			return C.kSecKeyAlgorithmRSASignatureDigestPSSSHA224
 		case crypto.SHA256:
 			return C.kSecKeyAlgorithmRSASignatureDigestPSSSHA256
 		case crypto.SHA384:
@@ -143,8 +143,8 @@ func rsaAlgorithm(opts crypto.SignerOpts) C.SecKeyAlgorithm {
 		}
 	case crypto.Hash:
 		switch o {
-		case crypto.SHA224:
-			return C.kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA224
+		case crypto.SHA1:
+			return C.kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA1
 		case crypto.SHA256:
 			return C.kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA256
 		case crypto.SHA384:
@@ -153,23 +153,17 @@ func rsaAlgorithm(opts crypto.SignerOpts) C.SecKeyAlgorithm {
 			return C.kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA512
 		}
 	}
-
 	return nullCFStringRef
 }
 
 func ecdsaAlgorithm(opts crypto.SignerOpts) C.SecKeyAlgorithm {
-	// XXX: I'm not at all sure this is right... there's a set of X9.62 signature
-	// algorithms and a set of RFC4754 algorithms... the RFC4754 ones are marked
-	// beta though, so we probably want the X9.62 ones?
-
 	hash, ok := opts.(crypto.Hash)
 	if !ok {
 		return nullCFStringRef
 	}
-
 	switch hash {
-	case crypto.SHA224:
-		return C.kSecKeyAlgorithmECDSASignatureDigestX962SHA224
+	case crypto.SHA1:
+		return C.kSecKeyAlgorithmECDSASignatureDigestX962SHA1
 	case crypto.SHA256:
 		return C.kSecKeyAlgorithmECDSASignatureDigestX962SHA256
 	case crypto.SHA384:
@@ -177,32 +171,29 @@ func ecdsaAlgorithm(opts crypto.SignerOpts) C.SecKeyAlgorithm {
 	case crypto.SHA512:
 		return C.kSecKeyAlgorithmECDSASignatureDigestX962SHA512
 	}
-
 	return nullCFStringRef
 }
 
-func loadClientCertificates(commonName, organizationalUnit string) ([]tls.Certificate, error) {
+func loadClientCertificates() ([]tls.Certificate, func(), error) {
 	item, release, err := toCFDictionary(map[string]any{
-		//toGoString(C.kSecReturnData): true,
 		toGoString(C.kSecClass):      toGoString(C.kSecClassIdentity),
 		toGoString(C.kSecMatchLimit): toGoString(C.kSecMatchLimitAll),
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer release()
 
 	var matches C.CFTypeRef
 	status := C.SecItemCopyMatching(item, &matches)
 	if status != C.errSecSuccess {
-		return nil, fmt.Errorf("error loading items from keychain: %d", status)
+		return nil, nil, fmt.Errorf("error loading items from keychain: %v", toGoSecError(status))
 	}
-	defer C.CFRelease(matches) // XXX: does CFRelease release items in an array?
-
-	var tlsCertificates []tls.Certificate
+	defer C.CFRelease(matches)
 	matchesArray := C.CFArrayRef(matches)
 
 	n := int(C.CFArrayGetCount(matchesArray))
+	tlsCertificates := make([]tls.Certificate, 0, n)
 	for i := 0; i < n; i++ {
 		// XXX - can we get identity name with kSecLabelItemAttr?
 		//       looks like we would need to set kSecReturnAttributes and then parse a dictionary?
@@ -220,13 +211,16 @@ func loadClientCertificates(commonName, organizationalUnit string) ([]tls.Certif
 	}
 
 	if len(tlsCertificates) == 0 {
-		return nil, fmt.Errorf("could not load any identities")
+		return nil, nil, fmt.Errorf("could not load any identities")
 	}
 
-	return tlsCertificates, nil
+	cleanup := func() {
+		for i := range tlsCertificates {
+			tlsCertificates[i].PrivateKey.(*keychainIdentity).release()
+		}
+	}
 
-	// XXX: need to call release() on all identities
-	// identity.release()
+	return tlsCertificates, cleanup, nil
 }
 
 func toGo(v any) any {
@@ -257,7 +251,7 @@ func toGo(v any) any {
 	panic(fmt.Errorf("unknown value type: %T", v))
 }
 
-func toGoError(status C.OSStatus) error {
+func toGoSecError(status C.OSStatus) error {
 	s := C.SecCopyErrorMessageString(status, nil)
 	defer C.CFRelease(C.CFTypeRef(s))
 	return errors.New(toGoString(s))

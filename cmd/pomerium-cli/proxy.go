@@ -132,9 +132,13 @@ func newTCPTunnel(dstHost string, specificPomeriumURL string) (*tcptunnel.Tunnel
 
 	var tlsConfig *tls.Config
 	if pomeriumURL.Scheme == "https" {
-		tlsConfig, err = getTLSConfig()
+		var cleanup func()
+		tlsConfig, cleanup, err = getTLSConfig()
 		if err != nil {
 			return nil, fmt.Errorf("invalid destination: %w", err)
+		}
+		if cleanup != nil {
+			defer cleanup() // XXX: this is not correct
 		}
 	}
 
