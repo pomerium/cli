@@ -13,6 +13,15 @@ ifneq ($(GITUNTRACKEDCHANGES),)
 	BUILDMETA := dirty
 endif
 
+# Keep cgo disabled on Linux, to avoid the cgo version of the Go standard
+# library 'net' package. On macOS and Windows we need cgo for the system cert
+# store integrations, but as of Go 1.20 the 'net' package does not use cgo on
+# macOS, and the 'net' package never used cgo on Windows (see
+# https://go.dev/doc/go1.20#cgo).
+ifeq ($(shell uname),Linux)
+	export CGO_ENABLED=0
+endif
+
 CTIMEVAR=-X $(PKG)/version.GitCommit=$(GITCOMMIT) \
 	-X $(PKG)/version.BuildMeta=$(BUILDMETA) \
 	-X $(PKG)/version.ProjectName=$(NAME) \
@@ -52,11 +61,11 @@ clean: ## Cleanup any build binaries or packages.
 .PHONY: build
 build: ## Build everything.
 	@echo "==> $@"
-	@CGO_ENABLED=0 GO111MODULE=on go build -tags "$(BUILDTAGS)" ${GO_LDFLAGS} -o $(BINDIR)/$(NAME) ./cmd/"$(NAME)"
+	@go build $(GO_LDFLAGS) -o $(BINDIR)/$(NAME) ./cmd/"$(NAME)"
 
 .PHONY: snapshot
 snapshot: ## Create release snapshot
-	APPARITOR_GITHUB_TOKEN=foo goreleaser release --snapshot --rm-dist
+	APPARITOR_GITHUB_TOKEN=foo VERSION_FLAGS="$(CTIMEVAR)" goreleaser release --snapshot --rm-dist
 
 
 .PHONY: help
