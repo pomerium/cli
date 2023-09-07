@@ -25,8 +25,6 @@ builds:
       - arm64
     goos:
       - linux
-      - darwin
-      - windows
       - freebsd
     goarm:
       - "6"
@@ -38,12 +36,7 @@ builds:
         goarch: arm
 
     ldflags:
-      - -s -w
-      - -X github.com/pomerium/cli/version.Version={{.Version}}
-      - -X github.com/pomerium/cli/version.GitCommit={{.ShortCommit}}
-      - -X github.com/pomerium/cli/version.BuildMeta={{.Timestamp}}
-      - -X github.com/pomerium/cli/version.ProjectName=pomerium-cli
-      - -X github.com/pomerium/cli/version.ProjectURL=https://www.pomerium.io
+      - "-s -w {{ .Env.VERSION_FLAGS }}"
 
 archives:
   - name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
@@ -57,7 +50,7 @@ archives:
         format: zip
 
 checksum:
-  name_template: "{{ .ProjectName }}_checksums.txt"
+  disable: true
 
 snapshot:
   name_template: "{{ .Version }}+next+{{ .ShortCommit }}"
