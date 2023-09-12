@@ -19,6 +19,9 @@ var (
 	// BuildMeta specifies release type (dev,rc1,beta,etc)
 	BuildMeta = ""
 
+	// Features contains a list of supported features.
+	Features []string
+
 	runtimeVersion = runtime.Version()
 )
 
@@ -32,6 +35,13 @@ func FullVersion() string {
 	}
 	if GitCommit != "" {
 		sb.WriteString("+" + GitCommit)
+	}
+	if len(Features) > 0 {
+		sb.WriteString("\nFeatures:")
+		for _, f := range Features {
+			sb.WriteRune(' ')
+			sb.WriteString(f)
+		}
 	}
 	return sb.String()
 }

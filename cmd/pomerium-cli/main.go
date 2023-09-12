@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
+	"github.com/pomerium/cli/certstore"
 	"github.com/pomerium/cli/version"
 	"github.com/pomerium/pomerium/pkg/cryptutil"
 )
@@ -62,6 +63,7 @@ var tlsOptions struct {
 	caCert                 string
 	clientCertPath         string
 	clientKeyPath          string
+	clientCertIssuerCN     string
 }
 
 func addTLSFlags(cmd *cobra.Command) {
@@ -76,6 +78,11 @@ func addTLSFlags(cmd *cobra.Command) {
 		"(optional) PEM-encoded client certificate")
 	flags.StringVar(&tlsOptions.clientKeyPath, "client-key", "",
 		"(optional) PEM-encoded client certificate")
+	if certstore.IsCertstoreSupported {
+		flags.StringVar(&tlsOptions.clientCertIssuerCN, "client-cert-issuer-cn", "",
+			"(optional) load client certificate and key from the system trust store, searching by "+
+				"the certificate issuer's Common Name [macOS and Windows only]")
+	}
 }
 
 func getTLSConfig() (*tls.Config, error) {
@@ -96,6 +103,13 @@ func getTLSConfig() (*tls.Config, error) {
 			return nil, fmt.Errorf("loading client cert: %w", err)
 		}
 		cfg.Certificates = append(cfg.Certificates, cert)
+	}
+	if tlsOptions.clientCertIssuerCN != "" {
+		cert, err := certstore.LoadCert(tlsOptions.clientCertIssuerCN)
+		if err != nil {
+			return nil, fmt.Errorf("loading client cert: %w", err)
+		}
+		cfg.Certificates = append(cfg.Certificates, *cert)
 	}
 	return cfg, nil
 }

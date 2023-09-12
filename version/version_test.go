@@ -11,26 +11,30 @@ func TestFullVersionVersion(t *testing.T) {
 		Version   string
 		GitCommit string
 		BuildMeta string
+		Features  []string
 
 		expected string
 	}{
-		{"", "", "", ""},
-		{"1.0.0", "", "", "1.0.0"},
-		{"1.0.0", "314501b", "", "1.0.0+314501b"},
-		{"1.0.0", "314501b", "dev", "1.0.0-dev+314501b"},
+		{"", "", "", nil, ""},
+		{"1.0.0", "", "", nil, "1.0.0"},
+		{"1.0.0", "314501b", "", nil, "1.0.0+314501b"},
+		{"1.0.0", "314501b", "dev", nil, "1.0.0-dev+314501b"},
+		{"1.0.0", "314501b", "dev", []string{"foo", "bar"}, "1.0.0-dev+314501b\nFeatures: foo bar"},
 	}
 	for _, tt := range tests {
 		Version = tt.Version
 		GitCommit = tt.GitCommit
 		BuildMeta = tt.BuildMeta
+		Features = tt.Features
 
 		if got := FullVersion(); got != tt.expected {
-			t.Errorf("expected (%s) got (%s) for Version(%s), GitCommit(%s) BuildMeta(%s)",
+			t.Errorf("expected (%s) got (%s) for Version(%s), GitCommit(%s) BuildMeta(%s) Features(%v)",
 				tt.expected,
 				got,
 				tt.Version,
 				tt.GitCommit,
-				tt.BuildMeta)
+				tt.BuildMeta,
+				tt.Features)
 		}
 	}
 }
