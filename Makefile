@@ -61,7 +61,7 @@ clean: ## Cleanup any build binaries or packages.
 .PHONY: build
 build: ## Build everything.
 	@echo "==> $@"
-	@go build $(GO_LDFLAGS) -o $(BINDIR)/$(NAME) ./cmd/"$(NAME)"
+	@go build -tags "$(BUILDTAGS)" $(GO_LDFLAGS) -o $(BINDIR)/$(NAME) ./cmd/"$(NAME)"
 
 .PHONY: snapshot
 snapshot: ## Create release snapshot
