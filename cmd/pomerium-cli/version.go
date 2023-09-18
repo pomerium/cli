@@ -1,11 +1,7 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
-
-	"github.com/pomerium/cli/version"
 )
 
 func init() {
@@ -17,6 +13,7 @@ var versionCmd = &cobra.Command{
 	Short: "version",
 	Long:  `Print the cli version.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("pomerium:", version.FullVersion())
+		rootCmd.SetArgs([]string{"--version"})
+		_ = rootCmd.Execute()
 	},
 }
