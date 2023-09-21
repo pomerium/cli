@@ -1,4 +1,6 @@
 // Copyright 2022 Google LLC.
+// Copyright 2023 Pomerium Inc.
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -43,6 +45,7 @@ const (
 	findIssuerStr                     = compareNameStrW<<compareShift | infoIssuerFlag // CERT_FIND_ISSUER_STR_W
 	certStoreLocalMachine             = certStoreLocalMachineID << locationShift       // CERT_SYSTEM_STORE_LOCAL_MACHINE
 	certStoreCurrentUser              = certStoreCurrentUserID << locationShift        // CERT_SYSTEM_STORE_CURRENT_USER
+	certStoreReadonlyFlag             = 0x00008000                                     // CERT_STORE_READONLY_FLAG
 	signatureKeyUsage                 = 0x80                                           // CERT_DIGITAL_SIGNATURE_KEY_USAGE
 	acquireCached                     = 0x1                                            // CRYPT_ACQUIRE_CACHE_FLAG
 	acquireSilent                     = 0x40                                           // CRYPT_ACQUIRE_SILENT_FLAG
@@ -213,6 +216,7 @@ func Cred(issuer string, storeName string, provider string) (*Key, error) {
 	} else {
 		return nil, errors.New("provider must be local_machine or current_user")
 	}
+	certStore |= certStoreReadonlyFlag
 	storeNamePtr, err := windows.UTF16PtrFromString(storeName)
 	if err != nil {
 		return nil, err
