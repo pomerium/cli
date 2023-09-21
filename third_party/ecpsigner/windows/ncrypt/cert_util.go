@@ -157,11 +157,22 @@ func findCertChain(cert *windows.CertContext) ([]*x509.Certificate, error) {
 	return x509Certs, nil
 }
 
-// intendedKeyUsage wraps CertGetIntendedKeyUsage. If there are key usage bytes they will be returned,
-// otherwise 0 will be returned.
-func intendedKeyUsage(enc uint32, cert *windows.CertContext) (usage uint16) {
-	_, _, _ = certGetIntendedKeyUsage.Call(uintptr(enc), uintptr(unsafe.Pointer(cert.CertInfo)), uintptr(unsafe.Pointer(&usage)), 2)
-	return
+// checkIntendedKeyUsage checks a certificate for the given usage, using CertGetIntendedKeyUsage.
+// Returns true if the certificate's KeyUsage extension contains all of the given usage bits, or if
+// the certificate does not contain a KeyUsage extension.
+func checkIntendedKeyUsage(cert *windows.CertContext, usage uint16) bool {
+	var certKeyUsage uint16
+	r, _, err := certGetIntendedKeyUsage.Call(
+		uintptr(cert.EncodingType),
+		uintptr(unsafe.Pointer(cert.CertInfo)),
+		uintptr(unsafe.Pointer(&certKeyUsage)),
+		2, // certKeyUsage has 2 bytes
+	)
+	if r == 0 && err.(syscall.Errno) == 0 {
+		// No key usage restrictions were present.
+		return true
+	}
+	return usage&certKeyUsage == usage
 }
 
 // acquirePrivateKey wraps CryptAcquireCertificatePrivateKey.
@@ -239,7 +250,7 @@ func Cred(issuer string, storeName string, provider string) (*Key, error) {
 			return nil, errors.New("no certificate found")
 		}
 		prev = nc
-		if (intendedKeyUsage(encodingX509ASN, nc) & signatureKeyUsage) == 0 {
+		if !checkIntendedKeyUsage(nc, signatureKeyUsage) {
 			continue
 		}
 
