@@ -1,4 +1,6 @@
 // Copyright 2022 Google LLC.
+// Copyright 2023 Pomerium Inc.
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -50,6 +52,7 @@ const (
 	ncryptKeySpec                     = 0xFFFFFFFF                                     // CERT_NCRYPT_KEY_SPEC
 	certChainCacheOnlyURLRetrieval    = 0x00000004                                     // CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL
 	certChainDisableAIA               = 0x00002000                                     // CERT_CHAIN_DISABLE_AIA
+	certStoreReadonlyFlag             = 0x00008000                                     // CERT_STORE_READONLY_FLAG
 	certChainRevocationCheckCacheOnly = 0x80000000                                     // CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY
 
 	hcceLocalMachine = windows.Handle(0x01) // HCCE_LOCAL_MACHINE
@@ -213,6 +216,7 @@ func Cred(issuer string, storeName string, provider string) (*Key, error) {
 	} else {
 		return nil, errors.New("provider must be local_machine or current_user")
 	}
+	certStore |= certStoreReadonlyFlag
 	storeNamePtr, err := windows.UTF16PtrFromString(storeName)
 	if err != nil {
 		return nil, err
