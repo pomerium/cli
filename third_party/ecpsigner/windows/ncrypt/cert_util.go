@@ -45,6 +45,7 @@ const (
 	findIssuerStr                     = compareNameStrW<<compareShift | infoIssuerFlag // CERT_FIND_ISSUER_STR_W
 	certStoreLocalMachine             = certStoreLocalMachineID << locationShift       // CERT_SYSTEM_STORE_LOCAL_MACHINE
 	certStoreCurrentUser              = certStoreCurrentUserID << locationShift        // CERT_SYSTEM_STORE_CURRENT_USER
+	certStoreReadonlyFlag             = 0x00008000                                     // CERT_STORE_READONLY_FLAG
 	signatureKeyUsage                 = 0x80                                           // CERT_DIGITAL_SIGNATURE_KEY_USAGE
 	acquireCached                     = 0x1                                            // CRYPT_ACQUIRE_CACHE_FLAG
 	acquireSilent                     = 0x40                                           // CRYPT_ACQUIRE_SILENT_FLAG
@@ -52,7 +53,6 @@ const (
 	ncryptKeySpec                     = 0xFFFFFFFF                                     // CERT_NCRYPT_KEY_SPEC
 	certChainCacheOnlyURLRetrieval    = 0x00000004                                     // CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL
 	certChainDisableAIA               = 0x00002000                                     // CERT_CHAIN_DISABLE_AIA
-	certStoreReadonlyFlag             = 0x00008000                                     // CERT_STORE_READONLY_FLAG
 	certChainRevocationCheckCacheOnly = 0x80000000                                     // CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY
 
 	hcceLocalMachine = windows.Handle(0x01) // HCCE_LOCAL_MACHINE
