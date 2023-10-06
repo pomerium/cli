@@ -26,7 +26,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"syscall"
+	"runtime"
+	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -34,31 +35,7 @@ import (
 
 const (
 	// wincrypt.h constants
-	encodingX509ASN                   = 1                                              // X509_ASN_ENCODING
-	certStoreCurrentUserID            = 1                                              // CERT_SYSTEM_STORE_CURRENT_USER_ID
-	certStoreLocalMachineID           = 2                                              // CERT_SYSTEM_STORE_LOCAL_MACHINE_ID
-	infoIssuerFlag                    = 4                                              // CERT_INFO_ISSUER_FLAG
-	compareNameStrW                   = 8                                              // CERT_COMPARE_NAME_STR_A
-	certStoreProvSystem               = 10                                             // CERT_STORE_PROV_SYSTEM
-	compareShift                      = 16                                             // CERT_COMPARE_SHIFT
-	locationShift                     = 16                                             // CERT_SYSTEM_STORE_LOCATION_SHIFT
-	findIssuerStr                     = compareNameStrW<<compareShift | infoIssuerFlag // CERT_FIND_ISSUER_STR_W
-	certStoreLocalMachine             = certStoreLocalMachineID << locationShift       // CERT_SYSTEM_STORE_LOCAL_MACHINE
-	certStoreCurrentUser              = certStoreCurrentUserID << locationShift        // CERT_SYSTEM_STORE_CURRENT_USER
-	certStoreReadonlyFlag             = 0x00008000                                     // CERT_STORE_READONLY_FLAG
-	signatureKeyUsage                 = 0x80                                           // CERT_DIGITAL_SIGNATURE_KEY_USAGE
-	acquireCached                     = 0x1                                            // CRYPT_ACQUIRE_CACHE_FLAG
-	acquireSilent                     = 0x40                                           // CRYPT_ACQUIRE_SILENT_FLAG
-	acquireOnlyNCryptKey              = 0x40000                                        // CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG
-	ncryptKeySpec                     = 0xFFFFFFFF                                     // CERT_NCRYPT_KEY_SPEC
-	certChainCacheOnlyURLRetrieval    = 0x00000004                                     // CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL
-	certChainDisableAIA               = 0x00002000                                     // CERT_CHAIN_DISABLE_AIA
-	certChainRevocationCheckCacheOnly = 0x80000000                                     // CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY
-
-	hcceLocalMachine = windows.Handle(0x01) // HCCE_LOCAL_MACHINE
-
-	// winerror.h constants
-	cryptENotFound = 0x80092004 // CRYPT_E_NOT_FOUND
+	signatureKeyUsage = 0x80 // CERT_DIGITAL_SIGNATURE_KEY_USAGE
 )
 
 var (
@@ -66,95 +43,26 @@ var (
 
 	crypt32 = windows.MustLoadDLL("crypt32.dll")
 
-	certFindCertificateInStore        = crypt32.MustFindProc("CertFindCertificateInStore")
 	certGetIntendedKeyUsage           = crypt32.MustFindProc("CertGetIntendedKeyUsage")
 	cryptAcquireCertificatePrivateKey = crypt32.MustFindProc("CryptAcquireCertificatePrivateKey")
 )
 
-// findCert wraps the CertFindCertificateInStore call. Note that any cert context passed
-// into prev will be freed. If no certificate was found, nil will be returned.
-func findCert(store windows.Handle, enc uint32, findFlags uint32, findType uint32, para *uint16, prev *windows.CertContext) (*windows.CertContext, error) {
-	h, _, err := certFindCertificateInStore.Call(
-		uintptr(store),
-		uintptr(enc),
-		uintptr(findFlags),
-		uintptr(findType),
-		uintptr(unsafe.Pointer(para)),
-		uintptr(unsafe.Pointer(prev)),
-	)
-	if h == 0 {
-		// Actual error, or simply not found?
-		errno, ok := err.(syscall.Errno)
-		if !ok {
-			return nil, err
-		}
-		if errno == cryptENotFound {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return (*windows.CertContext)(unsafe.Pointer(h)), nil
-}
-
-// extractSimpleChain extracts the final certificate chain from a CertSimpleChain.
+// extractSimpleChain extracts the first certificate chain from a CertSimpleChain.
 // Adapted from crypto.x509.root_windows
-func extractSimpleChain(simpleChain **windows.CertSimpleChain, chainCount int) ([]*x509.Certificate, error) {
+func extractSimpleChain(
+	simpleChain **windows.CertSimpleChain, chainCount uint32,
+) ([]*windows.CertChainElement, error) {
 	if simpleChain == nil || chainCount == 0 {
 		return nil, errors.New("invalid simple chain")
 	}
-	// Convert the simpleChain array to a huge slice and slice it to the length we want.
-	// https://github.com/golang/go/wiki/cgo#turning-c-arrays-into-go-slices
-	simpleChains := (*[1 << 20]*windows.CertSimpleChain)(unsafe.Pointer(simpleChain))[:chainCount:chainCount]
+	simpleChains := unsafe.Slice(simpleChain, chainCount)
 	// Each simple chain contains the chain of certificates, summary trust information
 	// about the chain, and trust information about each certificate element in the chain.
-	// Select the last chain since only expect to encounter one chain.
-	lastChain := simpleChains[chainCount-1]
-	chainLen := int(lastChain.NumElements)
-	elements := (*[1 << 20]*windows.CertChainElement)(unsafe.Pointer(lastChain.Elements))[:chainLen:chainLen]
-	chain := make([]*x509.Certificate, 0, chainLen)
-	for _, element := range elements {
-		xc, err := certContextToX509(element.CertContext)
-		if err != nil {
-			return nil, err
-		}
-		chain = append(chain, xc)
-	}
-	return chain, nil
-}
-
-// findCertChain builds a chain from a given certificate using the local machine store.
-func findCertChain(cert *windows.CertContext) ([]*x509.Certificate, error) {
-	var (
-		chainPara windows.CertChainPara
-		chainCtx  *windows.CertChainContext
-	)
-
-	// Search the system for candidate certificate chains.
-	// Because we are using unsafe pointers here, we CANNOT directly call
-	// CertGetCertificateChain and MUST either use the windows or syscall library
-	// to validly use unsafe pointers.
-	// See https://golang.org/pkg/unsafe/#Pointer for valid unsafe package patterns.
-	chainPara.Size = uint32(unsafe.Sizeof(chainPara))
-	err := windows.CertGetCertificateChain(
-		hcceLocalMachine,
-		cert,
-		nil,
-		cert.Store,
-		&chainPara,
-		certChainRevocationCheckCacheOnly|certChainCacheOnlyURLRetrieval|certChainDisableAIA,
-		0,
-		&chainCtx)
-
-	if err != nil {
-		return nil, fmt.Errorf("getCertificateChain: %w", err)
-	}
-	defer windows.CertFreeCertificateChain(chainCtx)
-
-	x509Certs, err := extractSimpleChain(chainCtx.Chains, int(chainCtx.ChainCount))
-	if err != nil {
-		return nil, fmt.Errorf("getCertificateChain extractSimpleChain: %w", err)
-	}
-	return x509Certs, nil
+	// Select the first chain.
+	firstChain := simpleChains[0]
+	chainLen := int(firstChain.NumElements)
+	elements := unsafe.Slice(firstChain.Elements, chainLen)
+	return elements, nil
 }
 
 // intendedKeyUsage wraps CertGetIntendedKeyUsage. If there are key usage bytes they will be returned,
@@ -171,9 +79,12 @@ func acquirePrivateKey(cert *windows.CertContext) (windows.Handle, error) {
 		keySpec  uint32
 		mustFree int
 	)
+	const acquireFlags = windows.CRYPT_ACQUIRE_CACHE_FLAG |
+		windows.CRYPT_ACQUIRE_SILENT_FLAG |
+		windows.CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG
 	r, _, err := cryptAcquireCertificatePrivateKey.Call(
 		uintptr(unsafe.Pointer(cert)),
-		acquireCached|acquireSilent|acquireOnlyNCryptKey,
+		acquireFlags,
 		null,
 		uintptr(unsafe.Pointer(&key)),
 		uintptr(unsafe.Pointer(&keySpec)),
@@ -185,16 +96,29 @@ func acquirePrivateKey(cert *windows.CertContext) (windows.Handle, error) {
 	if mustFree != 0 {
 		return 0, fmt.Errorf("wrong mustFree [%d != 0]", mustFree)
 	}
-	if keySpec != ncryptKeySpec {
-		return 0, fmt.Errorf("wrong keySpec [%d != %d]", keySpec, ncryptKeySpec)
+	if keySpec != windows.CERT_NCRYPT_KEY_SPEC {
+		return 0, fmt.Errorf("wrong keySpec [%d != %d]", keySpec, windows.CERT_NCRYPT_KEY_SPEC)
 	}
 	return key, nil
+}
+
+// certChainElementsToX509 converts a slice of CertChainElement to a slice of x509.Certificate.
+func certChainElementsToX509(elements []*windows.CertChainElement) ([]*x509.Certificate, error) {
+	chain := make([]*x509.Certificate, 0, len(elements))
+	for _, element := range elements {
+		xc, err := certContextToX509(element.CertContext)
+		if err != nil {
+			return nil, err
+		}
+		chain = append(chain, xc)
+	}
+	return chain, nil
 }
 
 // certContextToX509 extracts the x509 certificate from the cert context.
 func certContextToX509(ctx *windows.CertContext) (*x509.Certificate, error) {
 	// To ensure we don't mess with the cert context's memory, use a copy of it.
-	src := (*[1 << 20]byte)(unsafe.Pointer(ctx.EncodedCert))[:ctx.Length:ctx.Length]
+	src := unsafe.Slice(ctx.EncodedCert, ctx.Length)
 	der := make([]byte, int(ctx.Length))
 	copy(der, src)
 
@@ -205,59 +129,89 @@ func certContextToX509(ctx *windows.CertContext) (*x509.Certificate, error) {
 	return xc, nil
 }
 
-// Cred returns a Key wrapping the first valid certificate in the system store
-// matching a given issuer string.
-func Cred(issuer string, storeName string, provider string) (*Key, error) {
+func certNameBlobs(names [][]byte) []windows.CertNameBlob {
+	blobs := make([]windows.CertNameBlob, len(names))
+	for i := range names {
+		blobs[i].Size = uint32(len(names[i]))
+		blobs[i].Data = &names[i][0]
+	}
+	return blobs
+}
+
+var errNoCertificateFound = errors.New("no matching certificate found")
+
+// Cred returns a Key wrapping the first certificate in the system store matching one of the
+// given issuerNames and satisfying the filterCallback.
+func Cred(
+	issuerNames [][]byte, filterCallback func(*x509.Certificate) bool,
+	storeName string, provider string,
+) (*Key, error) {
 	var certStore uint32
 	if provider == "local_machine" {
-		certStore = uint32(certStoreLocalMachine)
+		certStore = uint32(windows.CERT_SYSTEM_STORE_LOCAL_MACHINE)
 	} else if provider == "current_user" {
-		certStore = uint32(certStoreCurrentUser)
+		certStore = uint32(windows.CERT_SYSTEM_STORE_CURRENT_USER)
 	} else {
 		return nil, errors.New("provider must be local_machine or current_user")
 	}
-	certStore |= certStoreReadonlyFlag
+	certStore |= windows.CERT_STORE_READONLY_FLAG
 	storeNamePtr, err := windows.UTF16PtrFromString(storeName)
 	if err != nil {
 		return nil, err
 	}
-	store, err := windows.CertOpenStore(certStoreProvSystem, 0, null, certStore, uintptr(unsafe.Pointer(storeNamePtr)))
+	store, err := windows.CertOpenStore(
+		windows.CERT_STORE_PROV_SYSTEM, 0, null, certStore, uintptr(unsafe.Pointer(storeNamePtr)))
 	if err != nil {
 		return nil, fmt.Errorf("opening certificate store: %w", err)
 	}
-	i, err := windows.UTF16PtrFromString(issuer)
-	if err != nil {
-		return nil, err
-	}
-	var prev *windows.CertContext
+	var prev *windows.CertChainContext
 	for {
-		nc, err := findCert(store, encodingX509ASN, 0, findIssuerStr, i, prev)
-		if err != nil {
-			return nil, fmt.Errorf("finding certificates: %w", err)
+		var para windows.CertChainFindByIssuerPara
+		para.Size = uint32(unsafe.Sizeof(para))
+		if issuer := certNameBlobs(issuerNames); len(issuer) > 0 {
+			para.IssuerCount = uint32(len(issuer))
+			para.Issuer = windows.Pointer(unsafe.Pointer(&issuer[0]))
 		}
-		if nc == nil {
-			return nil, errors.New("no certificate found")
+		nc, err := windows.CertFindChainInStore(
+			store,
+			windows.X509_ASN_ENCODING,
+			windows.CERT_CHAIN_FIND_BY_ISSUER_CACHE_ONLY_FLAG,
+			windows.CERT_CHAIN_FIND_BY_ISSUER,
+			unsafe.Pointer(&para),
+			prev,
+		)
+		if err != nil {
+			if err == windows.Errno(windows.CRYPT_E_NOT_FOUND) {
+				return nil, errNoCertificateFound
+			}
+			return nil, fmt.Errorf("finding certificate chains: %w", err)
+		} else if nc == nil {
+			return nil, errNoCertificateFound
 		}
 		prev = nc
-		if (intendedKeyUsage(encodingX509ASN, nc) & signatureKeyUsage) == 0 {
+
+		chain, err := extractSimpleChain(nc.Chains, nc.ChainCount)
+		if err != nil || len(chain) == 0 {
 			continue
 		}
 
-		xc, err := certContextToX509(nc)
+		if (intendedKeyUsage(encodingX509ASN, chain[0].CertContext) & signatureKeyUsage) == 0 {
+			continue
+		}
+
+		x509Chain, err := certChainElementsToX509(chain)
 		if err != nil {
 			continue
 		}
 
-		machineChain, err := findCertChain(nc)
-		if err != nil {
+		if !filterCallback(x509Chain[0]) {
 			continue
 		}
-		return &Key{
-			cert:  xc,
-			ctx:   nc,
-			store: store,
-			chain: machineChain,
-		}, nil
+
+		certContext := windows.CertDuplicateCertificateContext(chain[0].CertContext)
+		windows.CertFreeCertificateChain(nc)
+
+		return newKey(x509Chain, certContext, store), nil
 	}
 }
 
@@ -268,6 +222,24 @@ type Key struct {
 	ctx   *windows.CertContext
 	store windows.Handle
 	chain []*x509.Certificate
+	once  sync.Once
+}
+
+func newKey(
+	x509Chain []*x509.Certificate,
+	ctx *windows.CertContext,
+	store windows.Handle,
+) *Key {
+	k := &Key{
+		cert:  x509Chain[0],
+		ctx:   ctx,
+		store: store,
+		chain: x509Chain,
+	}
+	runtime.SetFinalizer(k, func(x interface{}) {
+		x.(*Key).Close()
+	})
+	return k
 }
 
 // CertificateChain returns the credential as a raw X509 cert chain. This
@@ -283,10 +255,16 @@ func (k *Key) CertificateChain() [][]byte {
 
 // Close releases resources held by the credential.
 func (k *Key) Close() error {
-	if err := windows.CertFreeCertificateContext(k.ctx); err != nil {
-		return err
-	}
-	return windows.CertCloseStore(k.store, 0)
+	var result error
+	k.once.Do(func() {
+		if err := windows.CertFreeCertificateContext(k.ctx); err != nil {
+			result = err
+		}
+		if err := windows.CertCloseStore(k.store, 0); err != nil {
+			result = err
+		}
+	})
+	return result
 }
 
 // Public returns the corresponding public key for this Key.

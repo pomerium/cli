@@ -4,11 +4,13 @@ package certstore
 
 import (
 	"crypto/tls"
-	"errors"
+	"crypto/x509"
 )
 
 var IsCertstoreSupported = false
 
-func LoadCert(issuer string) (*tls.Certificate, error) {
-	return nil, errors.New("this build of pomerium-cli does not support this feature")
+// loadCert is a stub that always returns an error, for builds where this
+// feature is not supported.
+func loadCert([][]byte, func(*x509.Certificate) bool) (*tls.Certificate, error) {
+	return nil, errNotSupported
 }

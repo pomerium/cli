@@ -1,4 +1,6 @@
 // Copyright 2022 Google LLC.
+// Copyright 2023 Pomerium Inc.
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -33,6 +35,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"runtime"
@@ -221,17 +224,23 @@ func (k *Key) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signa
 	return cfDataToBytes(C.CFDataRef(sig)), nil
 }
 
-// Cred gets the first Credential (filtering on issuer) corresponding to
-// available certificate and private key pairs (i.e. identities) available in
-// the Keychain. This includes both the current login keychain for the user,
-// and the system keychain.
-func Cred(issuerCN string) (*Key, error) {
+var errNoCertificateFound = errors.New("no matching certificate found")
+
+// Cred searches for an identity (certificate and private key) from the
+// Keychain based on a set of CA names and a filterCallback. This includes both
+// the current login keychain for the user, and the system keychain.
+func Cred(issuerNames [][]byte, filterCallback func(*x509.Certificate) bool) (*Key, error) {
+	issuersArray := toCFArray(issuerNames)
+	defer C.CFRelease(C.CFTypeRef(issuersArray))
+
 	leafSearch := C.CFDictionaryCreateMutable(C.kCFAllocatorDefault, 5, &C.kCFTypeDictionaryKeyCallBacks, &C.kCFTypeDictionaryValueCallBacks)
 	defer C.CFRelease(C.CFTypeRef(unsafe.Pointer(leafSearch)))
 	// Get identities (certificate + private key pairs).
 	C.CFDictionaryAddValue(leafSearch, unsafe.Pointer(C.kSecClass), unsafe.Pointer(C.kSecClassIdentity))
 	// Get identities that are signing capable.
 	C.CFDictionaryAddValue(leafSearch, unsafe.Pointer(C.kSecAttrCanSign), unsafe.Pointer(C.kCFBooleanTrue))
+	// Get identities matching the provided issuers.
+	C.CFDictionaryAddValue(leafSearch, unsafe.Pointer(C.kSecMatchIssuers), unsafe.Pointer(issuersArray))
 	// For each identity, give us the reference to it.
 	C.CFDictionaryAddValue(leafSearch, unsafe.Pointer(C.kSecReturnRef), unsafe.Pointer(C.kCFBooleanTrue))
 	// Be sure to list out all the matches.
@@ -239,6 +248,9 @@ func Cred(issuerCN string) (*Key, error) {
 	// Do the matching-item copy.
 	var leafMatches C.CFTypeRef
 	if errno := C.SecItemCopyMatching((C.CFDictionaryRef)(leafSearch), &leafMatches); errno != C.errSecSuccess {
+		if errno == C.errSecItemNotFound {
+			return nil, errNoCertificateFound
+		}
 		return nil, keychainError(errno)
 	}
 	defer C.CFRelease(leafMatches)
@@ -248,7 +260,7 @@ func Cred(issuerCN string) (*Key, error) {
 		leafIdent C.SecIdentityRef
 		leaf      *x509.Certificate
 	)
-	// Find the first valid leaf whose issuer (CA) matches the name in filter.
+	// Find the first valid leaf satisfying the filterCallback.
 	// Validation in identityToX509 covers Not Before, Not After and key alg.
 	for i := 0; i < int(C.CFArrayGetCount(signingIdents)) && leaf == nil; i++ {
 		identDict := C.CFArrayGetValueAtIndex(signingIdents, C.CFIndex(i))
@@ -256,7 +268,7 @@ func Cred(issuerCN string) (*Key, error) {
 		if err != nil {
 			continue
 		}
-		if xc.Issuer.CommonName == issuerCN {
+		if filterCallback(xc) {
 			leaf = xc
 			leafIdent = C.SecIdentityRef(identDict)
 		}
@@ -307,7 +319,7 @@ func Cred(issuerCN string) (*Key, error) {
 		}
 	}
 	if len(certs) == 0 {
-		return nil, fmt.Errorf("no key found with issuer common name %q", issuerCN)
+		return nil, errNoCertificateFound
 	}
 
 	skr, err := identityToSecKeyRef(leafIdent)
@@ -316,6 +328,20 @@ func Cred(issuerCN string) (*Key, error) {
 	}
 	defer C.CFRelease(C.CFTypeRef(skr))
 	return newKey(skr, certs)
+}
+
+// toCFArray converts a slice of byte slices to an array of CFDataRefs.
+func toCFArray(bs [][]byte) C.CFArrayRef {
+	n := len(bs)
+	ds := make([]unsafe.Pointer, n)
+	for i := range bs {
+		ds[i] = unsafe.Pointer(bytesToCFData(bs[i]))
+	}
+	var ptr *unsafe.Pointer
+	if n > 0 {
+		ptr = &ds[0]
+	}
+	return C.CFArrayCreate(C.kCFAllocatorDefault, ptr, C.CFIndex(n), &C.kCFTypeArrayCallBacks)
 }
 
 // identityToX509 converts a single CFDictionary that contains the item ref and
