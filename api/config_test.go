@@ -75,3 +75,64 @@ func TestAssignID(t *testing.T) {
 	cfg.upsert(rec)
 	assert.NotEmpty(t, rec.Id)
 }
+
+const exampleConfig = `{
+  "@type": "type.googleapis.com/pomerium.cli.Records",
+  "records": [
+    {
+      "id": "114acc22-c18f-4326-8606-425acc2b3eb5",
+	  "tags": ["admin"],
+      "conn": {
+        "name": "Example",
+        "remoteAddr": "example.route.pomerium.com:5000",
+        "listenAddr": "127.0.0.1:5000",
+        "disableTlsVerification": false,
+        "foo": "bar"
+      }
+    }
+  ]
+}`
+
+func TestLoadConfig(t *testing.T) {
+	cfg, err := loadConfig(&stubConfigProvider{[]byte(exampleConfig)})
+	assert.NoError(t, err)
+
+	exampleRecord := &pb.Record{
+		Id:   ptr("114acc22-c18f-4326-8606-425acc2b3eb5"),
+		Tags: []string{"admin"},
+		Conn: &pb.Connection{
+			Name:       ptr("Example"),
+			RemoteAddr: "example.route.pomerium.com:5000",
+			ListenAddr: ptr("127.0.0.1:5000"),
+			TlsOptions: &pb.Connection_DisableTlsVerification{},
+		},
+	}
+
+	assert.Equal(t, &config{
+		byID: map[string]*pb.Record{
+			"114acc22-c18f-4326-8606-425acc2b3eb5": exampleRecord,
+		},
+		byTag: map[string]map[string]*pb.Record{
+			"admin": {
+				"114acc22-c18f-4326-8606-425acc2b3eb5": exampleRecord,
+			},
+		},
+	}, cfg)
+}
+
+type stubConfigProvider struct {
+	data []byte
+}
+
+func (s *stubConfigProvider) Load() ([]byte, error) {
+	return s.data, nil
+}
+
+func (s *stubConfigProvider) Save(b []byte) error {
+	s.data = b
+	return nil
+}
+
+func ptr[T any](value T) *T {
+	return &value
+}
