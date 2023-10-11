@@ -46,7 +46,8 @@ func loadConfig(ls ConfigProvider) (*config, error) {
 	}
 
 	any := new(anypb.Any)
-	if err = protojson.Unmarshal(data, any); err != nil {
+	opts := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err = opts.Unmarshal(data, any); err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
