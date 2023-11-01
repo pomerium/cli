@@ -13,7 +13,7 @@ jobs:
       versionFlags: ${{ steps.flags.outputs.versionFlags }}
     steps:
       - name: Checkout
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
       - name: Set build version metadata flags
         id: flags
@@ -34,7 +34,7 @@ jobs:
       checksums: ${{ steps.build.outputs.checksums }}
     steps:
       - name: Checkout
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
       - name: Set up Go
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe
@@ -67,7 +67,7 @@ jobs:
       checksums: ${{ steps.build.outputs.checksums }}
     steps:
       - name: Checkout
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
 
       - name: Set up Go
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe
@@ -111,7 +111,7 @@ jobs:
       checksums: ${{ steps.checksums.outputs.checksums }}
     steps:
       - name: Checkout
-        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
         with:
           fetch-depth: 0 # GoReleaser needs commit history for changelog
 
