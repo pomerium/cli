@@ -1,4 +1,4 @@
-FROM golang:1.21.3-bookworm@sha256:5bafbbb109f02aaf6b41ddc19f54919773c3006f1cbda1599112603367642f0e as build
+FROM golang:1.21.4-bookworm@sha256:52362e252f452df17c24131b021bf2ebf1c9869f65c28f88ddb326191defea9c as build
 WORKDIR /go/src/github.com/pomerium/cli
 
 # cache depedency downloads
