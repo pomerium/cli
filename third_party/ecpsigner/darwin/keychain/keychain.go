@@ -230,17 +230,18 @@ var errNoCertificateFound = errors.New("no matching certificate found")
 // Keychain based on a set of CA names and a filterCallback. This includes both
 // the current login keychain for the user, and the system keychain.
 func Cred(issuerNames [][]byte, filterCallback func(*x509.Certificate) bool) (*Key, error) {
-	issuersArray := toCFArray(issuerNames)
-	defer C.CFRelease(C.CFTypeRef(issuersArray))
-
 	leafSearch := C.CFDictionaryCreateMutable(C.kCFAllocatorDefault, 5, &C.kCFTypeDictionaryKeyCallBacks, &C.kCFTypeDictionaryValueCallBacks)
 	defer C.CFRelease(C.CFTypeRef(unsafe.Pointer(leafSearch)))
 	// Get identities (certificate + private key pairs).
 	C.CFDictionaryAddValue(leafSearch, unsafe.Pointer(C.kSecClass), unsafe.Pointer(C.kSecClassIdentity))
 	// Get identities that are signing capable.
 	C.CFDictionaryAddValue(leafSearch, unsafe.Pointer(C.kSecAttrCanSign), unsafe.Pointer(C.kCFBooleanTrue))
-	// Get identities matching the provided issuers.
-	C.CFDictionaryAddValue(leafSearch, unsafe.Pointer(C.kSecMatchIssuers), unsafe.Pointer(issuersArray))
+	// Get identities matching the provided issuers (if provided)
+	if len(issuerNames) > 0 {
+		issuersArray := toCFArray(issuerNames)
+		defer C.CFRelease(C.CFTypeRef(issuersArray))
+		C.CFDictionaryAddValue(leafSearch, unsafe.Pointer(C.kSecMatchIssuers), unsafe.Pointer(issuersArray))
+	}
 	// For each identity, give us the reference to it.
 	C.CFDictionaryAddValue(leafSearch, unsafe.Pointer(C.kSecReturnRef), unsafe.Pointer(C.kCFBooleanTrue))
 	// Be sure to list out all the matches.
