@@ -67,8 +67,8 @@ func extractSimpleChain(
 
 // intendedKeyUsage wraps CertGetIntendedKeyUsage. If there are key usage bytes they will be returned,
 // otherwise 0 will be returned.
-func intendedKeyUsage(enc uint32, cert *windows.CertContext) (usage uint16) {
-	_, _, _ = certGetIntendedKeyUsage.Call(uintptr(enc), uintptr(unsafe.Pointer(cert.CertInfo)), uintptr(unsafe.Pointer(&usage)), 2)
+func intendedKeyUsage(cert *windows.CertContext) (usage uint16) {
+	_, _, _ = certGetIntendedKeyUsage.Call(uintptr(cert.EncodingType), uintptr(unsafe.Pointer(cert.CertInfo)), uintptr(unsafe.Pointer(&usage)), 2)
 	return
 }
 
@@ -195,7 +195,7 @@ func Cred(
 			continue
 		}
 
-		if (intendedKeyUsage(encodingX509ASN, chain[0].CertContext) & signatureKeyUsage) == 0 {
+		if (intendedKeyUsage(chain[0].CertContext) & signatureKeyUsage) == 0 {
 			continue
 		}
 
