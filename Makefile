@@ -38,9 +38,12 @@ all: clean lint test build
 test: ## test everything
 	go test ./...
 
+
 .PHONY: lint
-lint: ## run go mod tidy
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint --timeout=120s run ./...
+lint:
+	@echo "@==> $@"
+	@VERSION=$$(go run github.com/mikefarah/yq/v4@v4.34.1 '.jobs.lint.steps[] | select(.uses == "golangci/golangci-lint-action*") | .with.version' .github/workflows/lint.yml) && \
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint@$$VERSION run ./...
 
 .PHONY: tidy
 tidy: ## run go mod tidy
