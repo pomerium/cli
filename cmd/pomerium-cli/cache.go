@@ -10,7 +10,45 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/spf13/cobra"
 )
+
+var cacheCmd = &cobra.Command{
+	Use:   "cache",
+	Short: "commands for working with the cache",
+}
+
+var cacheClearCmd = &cobra.Command{
+	Use:   "clear",
+	Short: "clear the cache",
+	RunE: func(_ *cobra.Command, _ []string) error {
+		root, err := os.UserCacheDir()
+		if err != nil {
+			return err
+		}
+		return os.RemoveAll(filepath.Join(root, "pomerium-cli"))
+	},
+}
+
+var cacheLocationCmd = &cobra.Command{
+	Use:   "location",
+	Short: "print the cache location",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		root, err := os.UserCacheDir()
+		if err != nil {
+			return err
+		}
+		fmt.Println(filepath.Join(root, "pomerium-cli"))
+		return nil
+	},
+}
+
+func init() {
+	cacheCmd.AddCommand(cacheClearCmd)
+	cacheCmd.AddCommand(cacheLocationCmd)
+	rootCmd.AddCommand(cacheCmd)
+}
 
 func cachePath() (string, error) {
 	root, err := os.UserCacheDir()
