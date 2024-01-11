@@ -16,6 +16,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/pomerium/cli/certstore"
 	pb "github.com/pomerium/cli/proto"
 	"github.com/pomerium/cli/tcptunnel"
 )
@@ -102,7 +103,13 @@ func getTLSConfig(conn *pb.Connection) (*tls.Config, error) {
 		}
 		cfg.Certificates = append(cfg.Certificates, cert)
 	}
-	// TODO: add option corresponding to --client-cert-from-store
+	if c := conn.ClientCertFromStore; c != nil {
+		f, err := certstore.GetClientCertificateFunc(c.GetIssuerFilter(), c.GetSubjectFilter())
+		if err != nil {
+			return nil, fmt.Errorf("client cert from store: %w", err)
+		}
+		cfg.GetClientCertificate = f
+	}
 
 	if len(conn.GetCaCert()) == 0 {
 		return cfg, nil
