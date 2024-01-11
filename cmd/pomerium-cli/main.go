@@ -63,7 +63,9 @@ var tlsOptions struct {
 	caCert                 string
 	clientCertPath         string
 	clientKeyPath          string
-	clientCertIssuerCN     string
+	clientCertFromStore    bool
+	clientCertIssuer       string
+	clientCertSubject      string
 }
 
 func addTLSFlags(cmd *cobra.Command) {
@@ -79,9 +81,14 @@ func addTLSFlags(cmd *cobra.Command) {
 	flags.StringVar(&tlsOptions.clientKeyPath, "client-key", "",
 		"(optional) PEM-encoded client certificate")
 	if certstore.IsCertstoreSupported {
-		flags.StringVar(&tlsOptions.clientCertIssuerCN, "client-cert-issuer-cn", "",
-			"(optional) load client certificate and key from the system trust store, searching by "+
-				"the certificate issuer's Common Name [macOS and Windows only]")
+		flags.BoolVar(&tlsOptions.clientCertFromStore, "client-cert-from-store", false,
+			"load client certificate and key from the system trust store [macOS and Windows only]")
+		flags.StringVar(&tlsOptions.clientCertIssuer, "client-cert-issuer", "",
+			"search system trust store by some attribute of the cert Issuer name "+
+				`(e.g. "CN=my trusted CA name")`)
+		flags.StringVar(&tlsOptions.clientCertSubject, "client-cert-subject", "",
+			"search system trust store by some attribute of the cert Subject name "+
+				`(e.g. "O=my organization name")`)
 	}
 }
 
@@ -104,12 +111,13 @@ func getTLSConfig() (*tls.Config, error) {
 		}
 		cfg.Certificates = append(cfg.Certificates, cert)
 	}
-	if tlsOptions.clientCertIssuerCN != "" {
-		cert, err := certstore.LoadCert(tlsOptions.clientCertIssuerCN)
+	if tlsOptions.clientCertFromStore {
+		f, err := certstore.GetClientCertificateFunc(
+			tlsOptions.clientCertIssuer, tlsOptions.clientCertSubject)
 		if err != nil {
-			return nil, fmt.Errorf("loading client cert: %w", err)
+			return nil, err
 		}
-		cfg.Certificates = append(cfg.Certificates, *cert)
+		cfg.GetClientCertificate = f
 	}
 	return cfg, nil
 }
