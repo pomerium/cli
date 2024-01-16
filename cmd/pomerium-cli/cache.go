@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"github.com/pomerium/cli/internal/cache"
 )
 
 var cacheCmd = &cobra.Command{
@@ -23,11 +25,7 @@ var cacheClearCmd = &cobra.Command{
 	Use:   "clear",
 	Short: "clear the cache",
 	RunE: func(_ *cobra.Command, _ []string) error {
-		root, err := cachePath()
-		if err != nil {
-			return err
-		}
-		return os.RemoveAll(root)
+		return cache.Clear()
 	},
 }
 
@@ -35,7 +33,7 @@ var cacheLocationCmd = &cobra.Command{
 	Use:   "location",
 	Short: "print the cache location",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		root, err := cachePath()
+		root, err := cache.RootPath()
 		if err != nil {
 			return err
 		}
@@ -50,27 +48,11 @@ func init() {
 	rootCmd.AddCommand(cacheCmd)
 }
 
-func cachePath() (string, error) {
-	root, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(root, "pomerium-cli"), nil
-}
-
-func cachedCredentialsPath() (string, error) {
-	root, err := cachePath()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(root, "exec-credential"), nil
-}
-
 func cachedCredentialPath(serverURL string) (string, error) {
 	h := sha256.New()
 	_, _ = h.Write([]byte(serverURL))
 	id := hex.EncodeToString(h.Sum(nil))
-	p, err := cachedCredentialsPath()
+	p, err := cache.ExecCredentialsPath()
 	if err != nil {
 		return "", err
 	}
@@ -78,7 +60,7 @@ func cachedCredentialPath(serverURL string) (string, error) {
 }
 
 func clearAllCachedCredentials() error {
-	cache, err := cachedCredentialsPath()
+	cache, err := cache.ExecCredentialsPath()
 	if err != nil {
 		return err
 	}

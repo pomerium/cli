@@ -12,6 +12,7 @@ import (
 	"github.com/go-jose/go-jose/v3"
 	"github.com/martinlindhe/base36"
 
+	"github.com/pomerium/cli/internal/cache"
 	"github.com/pomerium/pomerium/pkg/cryptutil"
 )
 
@@ -36,12 +37,10 @@ type LocalJWTCache struct {
 
 // NewLocalJWTCache creates a new LocalJWTCache.
 func NewLocalJWTCache() (*LocalJWTCache, error) {
-	root, err := os.UserCacheDir()
+	dir, err := cache.JWTsPath()
 	if err != nil {
 		return nil, err
 	}
-
-	dir := filepath.Join(root, "pomerium-cli", "jwts")
 
 	err = os.MkdirAll(dir, 0o755)
 	if err != nil {
