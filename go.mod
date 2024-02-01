@@ -11,7 +11,7 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.1
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/google/go-cmp v0.6.0
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
 	github.com/pomerium/pomerium v0.24.0
 	github.com/rs/zerolog v1.31.0
