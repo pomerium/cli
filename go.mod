@@ -18,7 +18,7 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/crypto v0.17.0
+	golang.org/x/crypto v0.18.0
 	golang.org/x/sync v0.5.0
 	golang.org/x/sys v0.16.0
 	google.golang.org/grpc v1.60.1
