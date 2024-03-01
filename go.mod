@@ -6,7 +6,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/client9/misspell v0.3.4
 	github.com/elazarl/goproxy v0.0.0-20230808193330-2592e75ae04a
-	github.com/getsentry/sentry-go v0.26.0
+	github.com/getsentry/sentry-go v0.27.0
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/go-jose/go-jose/v3 v3.0.1
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
