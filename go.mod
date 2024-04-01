@@ -3,7 +3,7 @@ module github.com/pomerium/cli
 go 1.22
 
 require (
-	github.com/cenkalti/backoff/v4 v4.2.1
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/client9/misspell v0.3.4
 	github.com/elazarl/goproxy v0.0.0-20230808193330-2592e75ae04a
 	github.com/getsentry/sentry-go v0.27.0
@@ -13,7 +13,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
-	github.com/pomerium/pomerium v0.25.0
+	github.com/pomerium/pomerium v0.25.1
 	github.com/rs/zerolog v1.32.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.8.0
