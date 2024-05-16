@@ -123,13 +123,16 @@ func getTLSConfig() (*tls.Config, error) {
 }
 
 var browserOptions struct {
-	command string
+	command           string
+	useDeviceCodeFlow bool
 }
 
 func addBrowserFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.StringVar(&browserOptions.command, "browser-cmd", "",
 		"custom browser command to run when opening a URL")
+	flags.BoolVar(&browserOptions.useDeviceCodeFlow, "use-device-code-flow", false,
+		"use device code flow for authentication instead of opening a browser")
 }
 
 var serviceAccountOptions struct {
