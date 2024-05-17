@@ -176,9 +176,6 @@ type DeviceAuthTokenResponse struct {
 func (client *AuthClient) runDeviceCodeFlow(ctx context.Context, requestURL *url.URL) (string, error) {
 	apiUrl := requestURL.ResolveReference(&url.URL{
 		Path: "/.pomerium/api/v1/device_auth",
-		RawQuery: url.Values{
-			"pomerium_device_auth_route_uri": {requestURL.String()},
-		}.Encode(),
 	})
 
 	req, err := http.NewRequestWithContext(ctx, "GET", apiUrl.String(), nil)
@@ -233,7 +230,7 @@ func (client *AuthClient) runDeviceCodeFlow(ctx context.Context, requestURL *url
 			return "", ctx.Err()
 		}
 		req, err = http.NewRequestWithContext(ctx, "POST", apiUrl.String(), strings.NewReader(url.Values{
-			"pomerium_device_auth_retry_token": {base64.URLEncoding.EncodeToString(response.RetryToken)},
+			"pomerium_device_auth_retry_token": {base64.StdEncoding.EncodeToString(response.RetryToken)},
 		}.Encode()))
 		if err != nil {
 			return "", err
