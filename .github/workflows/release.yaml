@@ -13,7 +13,7 @@ jobs:
       versionFlags: ${{ steps.flags.outputs.versionFlags }}
     steps:
       - name: Checkout
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Set build version metadata flags
         id: flags
@@ -34,7 +34,7 @@ jobs:
       checksums: ${{ steps.build.outputs.checksums }}
     steps:
       - name: Checkout
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Set up Go
         uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7
@@ -67,7 +67,7 @@ jobs:
       checksums: ${{ steps.build.outputs.checksums }}
     steps:
       - name: Checkout
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
 
       - name: Set up Go
         uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7
@@ -111,7 +111,7 @@ jobs:
       checksums: ${{ steps.checksums.outputs.checksums }}
     steps:
       - name: Checkout
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
         with:
           fetch-depth: 0 # GoReleaser needs commit history for changelog
 
@@ -126,13 +126,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb
 
-      - uses: azure/docker-login@83efeb77770c98b620c73055fbb59b2847e17dc0
+      - uses: azure/docker-login@15c4aadf093404726ab2ff205b2cdd33fa6d054c
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5.1.0
+        uses: goreleaser/goreleaser-action@v6.0.0
         with:
           version: v1.18.2
           args: release
