@@ -10,20 +10,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Issuer: C=US, O=Pomerium, OU=Engineering, CN=Test Root CA
+// Issuer: C=US, O=Pomerium, OU=Engineering, OU=DevOps, CN=Test Root CA
 // Subject: C=US, ST=California, L=Los Angeles, O=Pomerium, CN=Test Certificate
 const testCertPEM = `-----BEGIN CERTIFICATE-----
-MIIB7jCCAZOgAwIBAgICIAAwCgYIKoZIzj0EAwIwTTELMAkGA1UEBhMCVVMxETAP
-BgNVBAoTCFBvbWVyaXVtMRQwEgYDVQQLEwtFbmdpbmVlcmluZzEVMBMGA1UEAxMM
-VGVzdCBSb290IENBMCIYDzAwMDEwMTAxMDAwMDAwWhgPMDAwMTAxMDEwMDAwMDBa
-MGYxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRQwEgYDVQQHEwtM
-b3MgQW5nZWxlczERMA8GA1UEChMIUG9tZXJpdW0xGTAXBgNVBAMTEFRlc3QgQ2Vy
-dGlmaWNhdGUwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASwx43T5tT/gvl0MjOZ
-pRMvDs2L6HqcN4vNmsbJRk/sTQrD0xVd4kzZc8mW7Q0/3WfE6QwbqkEyvxaPJ0iA
-8Xhvo0YwRDATBgNVHSUEDDAKBggrBgEFBQcDAjAMBgNVHRMBAf8EAjAAMB8GA1Ud
-IwQYMBaAFFGNnzA+46PbyMi0anD7+kfQInDQMAoGCCqGSM49BAMCA0kAMEYCIQCc
-31d4ncyipKvvF/sDAb43lAcwXHh3d+J68RoGDEBaAwIhAM8zV4cVob9hkh6oxb61
-q/MkLGpAvT+8J0K+JmvvCfTe
+MIIB5jCCAY2gAwIBAgICIAAwCgYIKoZIzj0EAwIwXDELMAkGA1UEBhMCVVMxETAP
+BgNVBAoTCFBvbWVyaXVtMSMwDQYDVQQLEwZEZXZPcHMwEgYDVQQLEwtFbmdpbmVl
+cmluZzEVMBMGA1UEAxMMVGVzdCBSb290IENBMCIYDzAwMDEwMTAxMDAwMDAwWhgP
+MDAwMTAxMDEwMDAwMDBaMGYxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9y
+bmlhMRQwEgYDVQQHEwtMb3MgQW5nZWxlczERMA8GA1UEChMIUG9tZXJpdW0xGTAX
+BgNVBAMTEFRlc3QgQ2VydGlmaWNhdGUwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNC
+AAQgkbO2N9cx+Pu9s7FLloSxWflttjGPMv+5JqinH1VXOmxBpXEpYZ9dgWgQIFNz
+onyn7SfjrYIJbTJcw+0V566+ozEwLzAMBgNVHRMBAf8EAjAAMB8GA1UdIwQYMBaA
+FDxdxtd1v9iJOdiQzR9O2VbtrliRMAoGCCqGSM49BAMCA0cAMEQCIFzelZ+1njgo
+wkVeQgxXi4x2ViqjsOfX6+FeyR0lhkbsAiAzcF/2EiqtTWVu6u/YXpbhIM4O7vra
+5nXYEk8IjlGTDw==
 -----END CERTIFICATE-----`
 
 func TestFilterCallback(t *testing.T) {
@@ -47,6 +47,8 @@ func TestFilterCallback(t *testing.T) {
 		{"full attribute names", "organizationName=Pomerium", "localityName=Los Angeles", true},
 		{"case insensitive attribute names", "o=Pomerium", "LOCALITYNAME=Los Angeles", true},
 		{"case sensitive values", "o=pomerium", "l=los angeles", false},
+		{"one of multiple attribute values/1", "OU=Engineering", "", true},
+		{"one of multiple attribute values/2", "OU=DevOps", "", true},
 	}
 	for i := range cases {
 		c := &cases[i]
@@ -90,7 +92,7 @@ func TestAttributeLookup(t *testing.T) {
 	name := &pkix.Name{
 		Country:            []string{"Italia"},
 		Organization:       []string{"Pomerium"},
-		OrganizationalUnit: []string{"Engineering"},
+		OrganizationalUnit: []string{"Engineering", "DevOps"},
 		Locality:           []string{"Tivoli"},
 		Province:           []string{"Roma"},
 		StreetAddress:      []string{"Via Esempio 123"},
@@ -101,22 +103,22 @@ func TestAttributeLookup(t *testing.T) {
 
 	cases := []struct {
 		attr  string
-		value string
+		value []string
 	}{
-		{"c", "Italia"},
-		{"countryname", "Italia"},
-		{"o", "Pomerium"},
-		{"organizationname", "Pomerium"},
-		{"ou", "Engineering"},
-		{"organizationalunitname", "Engineering"},
-		{"l", "Tivoli"},
-		{"localityname", "Tivoli"},
-		{"st", "Roma"},
-		{"stateorprovincename", "Roma"},
-		{"street", "Via Esempio 123"},
-		{"streetaddress", "Via Esempio 123"},
-		{"postalcode", "12345"},
-		{"serialnumber", "67890"},
+		{"c", []string{"Italia"}},
+		{"countryname", []string{"Italia"}},
+		{"o", []string{"Pomerium"}},
+		{"organizationname", []string{"Pomerium"}},
+		{"ou", []string{"Engineering", "DevOps"}},
+		{"organizationalunitname", []string{"Engineering", "DevOps"}},
+		{"l", []string{"Tivoli"}},
+		{"localityname", []string{"Tivoli"}},
+		{"st", []string{"Roma"}},
+		{"stateorprovincename", []string{"Roma"}},
+		{"street", []string{"Via Esempio 123"}},
+		{"streetaddress", []string{"Via Esempio 123"}},
+		{"postalcode", []string{"12345"}},
+		{"serialnumber", []string{"67890"}},
 	}
 	for i := range cases {
 		c := &cases[i]

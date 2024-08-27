@@ -8,6 +8,7 @@ import (
 	"crypto/x509/pkix"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -65,13 +66,13 @@ func filterCallback(issuerFilter, subjectFilter string) (func(*x509.Certificate)
 	return func(cert *x509.Certificate) bool {
 		if issuerAttr != "" {
 			v, err := attributeLookup(&cert.Issuer, issuerAttr)
-			if err != nil || v != issuerValue {
+			if err != nil || !slices.Contains(v, issuerValue) {
 				return false
 			}
 		}
 		if subjectAttr != "" {
 			v, err := attributeLookup(&cert.Subject, subjectAttr)
-			if err != nil || v != subjectValue {
+			if err != nil || !slices.Contains(v, subjectValue) {
 				return false
 			}
 		}
@@ -98,40 +99,30 @@ func parseFilterCondition(f string) (attr, value string, err error) {
 	return
 }
 
-// attributeLookup returns a single attribute value from a pkix.Name struct.
-// Multi-valued RDNs are not supported. Attributes and abbreviations are
-// defined in RFC 2256 § 5. Only the named fields of pkix.Name are supported.
-func attributeLookup(name *pkix.Name, attr string) (string, error) {
+// attributeLookup returns an attribute's value(s) from a pkix.Name struct.
+// Attributes and abbreviations are defined in RFC 2256 § 5. Only the named
+// fields of pkix.Name are supported.
+func attributeLookup(name *pkix.Name, attr string) ([]string, error) {
 	switch attr {
 	case "commonname", "cn":
-		return name.CommonName, nil
+		return []string{name.CommonName}, nil
 	case "countryname", "c":
-		return flatten(name.Country)
+		return name.Country, nil
 	case "localityname", "l":
-		return flatten(name.Locality)
+		return name.Locality, nil
 	case "organizationalunitname", "ou":
-		return flatten(name.OrganizationalUnit)
+		return name.OrganizationalUnit, nil
 	case "organizationname", "o":
-		return flatten(name.Organization)
+		return name.Organization, nil
 	case "postalcode":
-		return flatten(name.PostalCode)
+		return name.PostalCode, nil
 	case "serialnumber":
-		return name.SerialNumber, nil
+		return []string{name.SerialNumber}, nil
 	case "stateorprovincename", "st":
-		return flatten(name.Province)
+		return name.Province, nil
 	case "streetaddress", "street":
-		return flatten(name.StreetAddress)
+		return name.StreetAddress, nil
 	default:
-		return "", fmt.Errorf("unsupported attribute %q", attr)
+		return nil, fmt.Errorf("unsupported attribute %q", attr)
 	}
-}
-
-func flatten(s []string) (string, error) {
-	if len(s) > 1 {
-		return "", fmt.Errorf("multi-valued attributes are not supported")
-	}
-	if len(s) == 0 {
-		return "", nil
-	}
-	return s[0], nil
 }
