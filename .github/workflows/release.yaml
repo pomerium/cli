@@ -39,7 +39,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32
         with:
-          go-version: 1.22.x
+          go-version: 1.23.x
 
       - name: Build and archive
         id: build
@@ -72,7 +72,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32
         with:
-          go-version: 1.22.x
+          go-version: 1.23.x
 
       - name: Build and archive
         id: build
@@ -118,7 +118,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32
         with:
-          go-version: 1.22.x
+          go-version: 1.23.x
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
