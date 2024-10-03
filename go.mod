@@ -1,6 +1,7 @@
 module github.com/pomerium/cli
 
-go 1.22.4
+go 1.23.0
+
 toolchain go1.23.2
 
 require (
