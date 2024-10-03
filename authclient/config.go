@@ -8,6 +8,7 @@ import (
 
 type config struct {
 	open               func(rawURL string) error
+	deviceCodeFlow     bool
 	serviceAccount     string
 	serviceAccountFile string
 	tlsConfig          *tls.Config
@@ -56,5 +57,11 @@ func WithServiceAccountFile(file string) Option {
 func WithTLSConfig(tlsConfig *tls.Config) Option {
 	return func(cfg *config) {
 		cfg.tlsConfig = tlsConfig.Clone()
+	}
+}
+
+func WithUseDeviceCodeFlow(enabled bool) Option {
+	return func(cfg *config) {
+		cfg.deviceCodeFlow = enabled
 	}
 }
