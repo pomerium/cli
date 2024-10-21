@@ -27,6 +27,23 @@ func New(options ...Option) *AuthClient {
 	}
 }
 
+func (client *AuthClient) CheckBearerToken(ctx context.Context, serverURL *url.URL, bearerToken string) error {
+	browserURL := getBrowserURL(serverURL)
+	dst := browserURL.ResolveReference(&url.URL{
+		Path: "/api",
+	})
+
+	req, err := http.NewRequest("GET", dst.String(), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+
+	_, err = client.fetch(ctx, req)
+	return err
+}
+
 // GetJWT retrieves a JWT from Pomerium.
 func (client *AuthClient) GetJWT(ctx context.Context, serverURL *url.URL, onOpenBrowser func(string)) (rawJWT string, err error) {
 	if client.cfg.serviceAccount != "" {
@@ -104,16 +121,7 @@ func (client *AuthClient) runHTTPServer(ctx context.Context, li net.Listener, in
 }
 
 func (client *AuthClient) runOpenBrowser(ctx context.Context, li net.Listener, serverURL *url.URL, onOpenBrowser func(string)) error {
-	browserURL := new(url.URL)
-	*browserURL = *serverURL
-
-	// remove unnecessary ports to avoid HMAC error
-	if browserURL.Scheme == "http" && browserURL.Host == browserURL.Hostname()+":80" {
-		browserURL.Host = browserURL.Hostname()
-	} else if browserURL.Scheme == "https" && browserURL.Host == browserURL.Hostname()+":443" {
-		browserURL.Host = browserURL.Hostname()
-	}
-
+	browserURL := getBrowserURL(serverURL)
 	dst := browserURL.ResolveReference(&url.URL{
 		Path: "/.pomerium/api/v1/login",
 		RawQuery: url.Values{
@@ -121,34 +129,14 @@ func (client *AuthClient) runOpenBrowser(ctx context.Context, li net.Listener, s
 		}.Encode(),
 	})
 
-	ctx, clearTimeout := context.WithTimeout(ctx, 10*time.Second)
-	defer clearTimeout()
-
-	req, err := http.NewRequestWithContext(ctx, "GET", dst.String(), nil)
+	req, err := http.NewRequest("GET", dst.String(), nil)
 	if err != nil {
 		return err
 	}
 
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = client.cfg.tlsConfig
-
-	hc := &http.Client{
-		Transport: transport,
-	}
-
-	res, err := hc.Do(req)
+	bs, err := client.fetch(ctx, req)
 	if err != nil {
-		return fmt.Errorf("failed to get login url: %w", err)
-	}
-	defer func() { _ = res.Body.Close() }()
-
-	if res.StatusCode/100 != 2 {
-		return fmt.Errorf("failed to get login url: %s", res.Status)
-	}
-
-	bs, err := io.ReadAll(res.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read login url: %w", err)
+		return err
 	}
 
 	onOpenBrowser(string(bs))
@@ -159,4 +147,43 @@ func (client *AuthClient) runOpenBrowser(ctx context.Context, li net.Listener, s
 
 	_, _ = fmt.Fprintf(os.Stderr, "Your browser has been opened to visit:\n\n%s\n\n", string(bs))
 	return nil
+}
+
+func (client *AuthClient) fetch(ctx context.Context, req *http.Request) ([]byte, error) {
+	ctx, clearTimeout := context.WithTimeout(ctx, 10*time.Second)
+	defer clearTimeout()
+	req = req.WithContext(ctx)
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = client.cfg.tlsConfig
+
+	hc := &http.Client{
+		Transport: transport,
+	}
+
+	res, err := hc.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get url: %w", err)
+	}
+	defer func() { _ = res.Body.Close() }()
+
+	if res.StatusCode/100 != 2 {
+		return nil, fmt.Errorf("unexpected status code: %s", res.Status)
+	}
+
+	return io.ReadAll(res.Body)
+}
+
+func getBrowserURL(serverURL *url.URL) *url.URL {
+	browserURL := new(url.URL)
+	*browserURL = *serverURL
+
+	// remove unnecessary ports to avoid HMAC error
+	if browserURL.Scheme == "http" && browserURL.Host == browserURL.Hostname()+":80" {
+		browserURL.Host = browserURL.Hostname()
+	} else if browserURL.Scheme == "https" && browserURL.Host == browserURL.Hostname()+":443" {
+		browserURL.Host = browserURL.Hostname()
+	}
+
+	return browserURL
 }
