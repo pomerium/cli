@@ -110,7 +110,7 @@ func loadCachedCredential(serverURL string) (*ExecCredential, error) {
 	}
 
 	ts := creds.Status.ExpirationTimestamp
-	if ts.IsZero() || ts.Before(time.Now()) {
+	if !ts.IsZero() && ts.Before(time.Now()) {
 		_ = os.Remove(fn)
 		return nil, errors.New("expired")
 	}

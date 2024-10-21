@@ -54,12 +54,6 @@ var kubernetesExecCredentialCmd = &cobra.Command{
 			return fmt.Errorf("invalid server url: %v", err)
 		}
 
-		creds, err := loadCachedCredential(serverURL.String())
-		if err == nil {
-			printCreds(creds)
-			return nil
-		}
-
 		var tlsConfig *tls.Config
 		if serverURL.Scheme == "https" {
 			tlsConfig, err = getTLSConfig()
@@ -73,6 +67,13 @@ var kubernetesExecCredentialCmd = &cobra.Command{
 			authclient.WithServiceAccount(serviceAccountOptions.serviceAccount),
 			authclient.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
 			authclient.WithTLSConfig(tlsConfig))
+
+		creds, err := loadCachedCredential(serverURL.String())
+		if err == nil && ac.CheckBearerToken(context.Background(), serverURL, creds.Status.Token) == nil {
+			printCreds(creds)
+			return nil
+		}
+
 		rawJWT, err := ac.GetJWT(context.Background(), serverURL, func(s string) {})
 		if err != nil {
 			fatalf("%s", err)
