@@ -9,7 +9,7 @@ import (
 	"github.com/golang/groupcache/lru"
 
 	pb "github.com/pomerium/cli/proto"
-	"github.com/pomerium/cli/tcptunnel"
+	"github.com/pomerium/cli/tunnel"
 )
 
 // ConfigProvider provides interface to the configuration persistence
@@ -35,9 +35,9 @@ type ListenerStatus interface {
 	SetListenerError(id string, err error) error
 }
 
-// Tunnel is abstraction over tcptunnel.Tunnel to allow mocking
+// Tunnel is abstraction over tunnel.Tunnel to allow mocking
 type Tunnel interface {
-	Run(context.Context, io.ReadWriter, tcptunnel.TunnelEvents) error
+	Run(context.Context, io.ReadWriter, tunnel.EventSink) error
 }
 
 // Server implements both config and listener interfaces

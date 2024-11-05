@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/pomerium/cli/tcptunnel"
+	"github.com/pomerium/cli/tunnel"
 )
 
 var proxyCmdOptions struct {
@@ -100,7 +100,7 @@ func makeDomainRegexes() ([]*regexp.Regexp, error) {
 	return domainRegexes, nil
 }
 
-func newTCPTunnel(dstHost string, specificPomeriumURL string) (*tcptunnel.Tunnel, error) {
+func newTCPTunnel(dstHost string, specificPomeriumURL string) (*tunnel.Tunnel, error) {
 	dstHostname, dstPort, err := net.SplitHostPort(dstHost)
 	if err != nil {
 		return nil, fmt.Errorf("invalid destination: %w", err)
@@ -138,12 +138,12 @@ func newTCPTunnel(dstHost string, specificPomeriumURL string) (*tcptunnel.Tunnel
 		}
 	}
 
-	return tcptunnel.New(
-		tcptunnel.WithDestinationHost(net.JoinHostPort(dstHostname, dstPort)),
-		tcptunnel.WithProxyHost(pomeriumURL.Host),
-		tcptunnel.WithServiceAccount(serviceAccountOptions.serviceAccount),
-		tcptunnel.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
-		tcptunnel.WithTLSConfig(tlsConfig),
+	return tunnel.New(
+		tunnel.WithDestinationHost(net.JoinHostPort(dstHostname, dstPort)),
+		tunnel.WithProxyHost(pomeriumURL.Host),
+		tunnel.WithServiceAccount(serviceAccountOptions.serviceAccount),
+		tunnel.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
+		tunnel.WithTLSConfig(tlsConfig),
 	), nil
 }
 
@@ -165,7 +165,7 @@ func hijackProxyConnect(req *http.Request, client net.Conn, ctx *goproxy.ProxyCt
 		log.Error().Err(err).Msg("Failed to send response to client")
 		return
 	}
-	if err := tun.Run(req.Context(), client, tcptunnel.DiscardEvents()); err != nil {
+	if err := tun.Run(req.Context(), client, tunnel.DiscardEvents()); err != nil {
 		log.Error().Err(err).Msg("Failed to run TCP tunnel")
 	}
 }

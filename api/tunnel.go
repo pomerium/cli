@@ -18,7 +18,7 @@ import (
 
 	"github.com/pomerium/cli/certstore"
 	pb "github.com/pomerium/cli/proto"
-	"github.com/pomerium/cli/tcptunnel"
+	"github.com/pomerium/cli/tunnel"
 )
 
 func newTunnel(conn *pb.Connection, browserCmd, serviceAccount, serviceAccountFile string) (Tunnel, string, error) {
@@ -27,7 +27,7 @@ func newTunnel(conn *pb.Connection, browserCmd, serviceAccount, serviceAccountFi
 		listenAddr = *conn.ListenAddr
 	}
 
-	destinationAddr, proxyURL, err := tcptunnel.ParseURLs(conn.GetRemoteAddr(), conn.GetPomeriumUrl())
+	destinationAddr, proxyURL, err := tunnel.ParseURLs(conn.GetRemoteAddr(), conn.GetPomeriumUrl())
 	if err != nil {
 		return nil, "", err
 	}
@@ -40,13 +40,13 @@ func newTunnel(conn *pb.Connection, browserCmd, serviceAccount, serviceAccountFi
 		}
 	}
 
-	return tcptunnel.New(
-		tcptunnel.WithDestinationHost(destinationAddr),
-		tcptunnel.WithProxyHost(proxyURL.Host),
-		tcptunnel.WithServiceAccount(serviceAccount),
-		tcptunnel.WithServiceAccountFile(serviceAccountFile),
-		tcptunnel.WithTLSConfig(tlsCfg),
-		tcptunnel.WithBrowserCommand(browserCmd),
+	return tunnel.New(
+		tunnel.WithDestinationHost(destinationAddr),
+		tunnel.WithProxyHost(proxyURL.Host),
+		tunnel.WithServiceAccount(serviceAccount),
+		tunnel.WithServiceAccountFile(serviceAccountFile),
+		tunnel.WithTLSConfig(tlsCfg),
+		tunnel.WithBrowserCommand(browserCmd),
 	), listenAddr, nil
 }
 
