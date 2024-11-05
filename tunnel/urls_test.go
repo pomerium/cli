@@ -1,4 +1,4 @@
-package tcptunnel
+package tunnel
 
 import (
 	"errors"

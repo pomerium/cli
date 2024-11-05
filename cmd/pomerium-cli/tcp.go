@@ -11,7 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/pomerium/cli/tcptunnel"
+	"github.com/pomerium/cli/tunnel"
 )
 
 var tcpCmdOptions struct {
@@ -36,7 +36,7 @@ var tcpCmd = &cobra.Command{
 	Short: "creates a TCP tunnel through Pomerium",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		destinationAddr, proxyURL, err := tcptunnel.ParseURLs(args[0], tcpCmdOptions.pomeriumURL)
+		destinationAddr, proxyURL, err := tunnel.ParseURLs(args[0], tcpCmdOptions.pomeriumURL)
 		if err != nil {
 			return err
 		}
@@ -57,17 +57,17 @@ var tcpCmd = &cobra.Command{
 			cancel()
 		}()
 
-		tun := tcptunnel.New(
-			tcptunnel.WithBrowserCommand(browserOptions.command),
-			tcptunnel.WithDestinationHost(destinationAddr),
-			tcptunnel.WithProxyHost(proxyURL.Host),
-			tcptunnel.WithServiceAccount(serviceAccountOptions.serviceAccount),
-			tcptunnel.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
-			tcptunnel.WithTLSConfig(tlsConfig),
+		tun := tunnel.New(
+			tunnel.WithBrowserCommand(browserOptions.command),
+			tunnel.WithDestinationHost(destinationAddr),
+			tunnel.WithProxyHost(proxyURL.Host),
+			tunnel.WithServiceAccount(serviceAccountOptions.serviceAccount),
+			tunnel.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
+			tunnel.WithTLSConfig(tlsConfig),
 		)
 
 		if tcpCmdOptions.listen == "-" {
-			err = tun.Run(ctx, readWriter{Reader: os.Stdin, Writer: os.Stdout}, tcptunnel.DiscardEvents())
+			err = tun.Run(ctx, readWriter{Reader: os.Stdin, Writer: os.Stdout}, tunnel.DiscardEvents())
 		} else {
 			err = tun.RunListener(ctx, tcpCmdOptions.listen)
 		}
