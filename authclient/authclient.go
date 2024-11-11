@@ -30,7 +30,7 @@ func New(options ...Option) *AuthClient {
 func (client *AuthClient) CheckBearerToken(ctx context.Context, serverURL *url.URL, bearerToken string) error {
 	browserURL := getBrowserURL(serverURL)
 	dst := browserURL.ResolveReference(&url.URL{
-		Path: "/api",
+		Path: "/livez",
 	})
 
 	req, err := http.NewRequest("GET", dst.String(), nil)
