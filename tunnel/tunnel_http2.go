@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -39,6 +40,10 @@ func (t *http2tunnel) TunnelTCP(
 	if err != nil {
 		return fmt.Errorf("failed to establish connection to proxy: %w", err)
 	}
+	defer func() {
+		_ = raw.Close()
+		log.Println("connection closed")
+	}()
 
 	remote, ok := raw.(*tls.Conn)
 	if !ok {
@@ -54,6 +59,7 @@ func (t *http2tunnel) TunnelTCP(
 	if err != nil {
 		return fmt.Errorf("failed to establish http2 connection: %w", err)
 	}
+	defer cc.Close()
 
 	req := (&http.Request{
 		Method:        "CONNECT",
@@ -82,6 +88,9 @@ func (t *http2tunnel) TunnelTCP(
 	default:
 		return fmt.Errorf("invalid http response code: %d", res.StatusCode)
 	}
+
+	log.Println("connection established via http2")
+	eventSink.OnConnected(ctx)
 
 	errc := make(chan error, 1)
 	go func() {
