@@ -20,6 +20,7 @@ import (
 var (
 	errUnavailable     = errors.New("unavailable")
 	errUnauthenticated = errors.New("unauthenticated")
+	errUnsupported     = errors.New("unsupported")
 )
 
 // A Tunnel represents a TCP tunnel over HTTP Connect.
@@ -108,7 +109,12 @@ func (tun *Tunnel) Run(ctx context.Context, local io.ReadWriter, eventSink Event
 }
 
 func (tun *Tunnel) run(ctx context.Context, eventSink EventSink, local io.ReadWriter, rawJWT string, retryCount int) error {
-	err := (&http1tunnel{cfg: tun.cfg}).TunnelTCP(ctx, eventSink, local, rawJWT)
+	err := (&http2tunnel{cfg: tun.cfg}).TunnelTCP(ctx, eventSink, local, rawJWT)
+	if errors.Is(err, errUnsupported) {
+		// fallback to http1
+		err = (&http1tunnel{cfg: tun.cfg}).TunnelTCP(ctx, eventSink, local, rawJWT)
+	}
+
 	if errors.Is(err, errUnavailable) {
 		// don't delete the JWT if we get a service unavailable
 		return err
