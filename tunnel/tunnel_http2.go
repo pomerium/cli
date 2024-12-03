@@ -61,12 +61,14 @@ func (t *http2tunnel) TunnelTCP(
 	}
 	defer cc.Close()
 
+	pr, pw := io.Pipe()
+
 	req := (&http.Request{
 		Method:        "CONNECT",
 		URL:           &url.URL{Opaque: t.cfg.dstHost},
 		Host:          t.cfg.dstHost,
 		Header:        hdr,
-		Body:          io.NopCloser(local),
+		Body:          pr,
 		ContentLength: -1,
 	}).WithContext(ctx)
 
@@ -92,7 +94,11 @@ func (t *http2tunnel) TunnelTCP(
 	log.Println("connection established via http2")
 	eventSink.OnConnected(ctx)
 
-	errc := make(chan error, 1)
+	errc := make(chan error, 2)
+	go func() {
+		_, err := io.Copy(pw, local)
+		errc <- err
+	}()
 	go func() {
 		_, err := io.Copy(local, res.Body)
 		errc <- err
