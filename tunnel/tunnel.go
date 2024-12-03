@@ -2,15 +2,12 @@
 package tunnel
 
 import (
-	"bufio"
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
-	"net/http"
 	"net/url"
 	"time"
 
@@ -18,6 +15,11 @@ import (
 
 	"github.com/pomerium/cli/authclient"
 	"github.com/pomerium/cli/jwt"
+)
+
+var (
+	errUnavailable     = errors.New("unavailable")
+	errUnauthenticated = errors.New("unauthenticated")
 )
 
 // A Tunnel represents a TCP tunnel over HTTP Connect.
@@ -106,121 +108,40 @@ func (tun *Tunnel) Run(ctx context.Context, local io.ReadWriter, eventSink Event
 }
 
 func (tun *Tunnel) run(ctx context.Context, eventSink EventSink, local io.ReadWriter, rawJWT string, retryCount int) error {
-	eventSink.OnConnecting(ctx)
-
-	hdr := http.Header{}
-	if rawJWT != "" {
-		hdr.Set("Authorization", "Pomerium "+rawJWT)
-	}
-
-	req := (&http.Request{
-		Method: "CONNECT",
-		URL:    &url.URL{Opaque: tun.cfg.dstHost},
-		Host:   tun.cfg.dstHost,
-		Header: hdr,
-	}).WithContext(ctx)
-
-	var remote net.Conn
-	var err error
-	if tun.cfg.tlsConfig != nil {
-		remote, err = (&tls.Dialer{Config: tun.cfg.tlsConfig}).DialContext(ctx, "tcp", tun.cfg.proxyHost)
-	} else {
-		remote, err = (&net.Dialer{}).DialContext(ctx, "tcp", tun.cfg.proxyHost)
-	}
-	if err != nil {
-		return fmt.Errorf("failed to establish connection to proxy: %w", err)
-	}
-	defer func() {
-		_ = remote.Close()
-		log.Println("connection closed")
-	}()
-	if done := ctx.Done(); done != nil {
-		go func() {
-			<-done
-			_ = remote.Close()
-		}()
-	}
-
-	err = req.Write(remote)
-	if err != nil {
-		return err
-	}
-
-	br := bufio.NewReader(remote)
-	res, err := http.ReadResponse(br, req)
-	if err != nil {
-		return fmt.Errorf("failed to read HTTP response: %w", err)
-	}
-	defer func() {
-		_ = res.Body.Close()
-	}()
-	switch res.StatusCode {
-	case http.StatusOK:
-	case http.StatusServiceUnavailable:
+	err := (&http1tunnel{cfg: tun.cfg}).TunnelTCP(ctx, eventSink, local, rawJWT)
+	if errors.Is(err, errUnavailable) {
 		// don't delete the JWT if we get a service unavailable
-		return fmt.Errorf("invalid http response code: %s", res.Status)
-	case http.StatusMovedPermanently,
-		http.StatusFound,
-		http.StatusTemporaryRedirect,
-		http.StatusPermanentRedirect:
-		if retryCount == 0 {
-			_ = remote.Close()
-
-			serverURL := &url.URL{
-				Scheme: "http",
-				Host:   tun.cfg.proxyHost,
-			}
-			if tun.cfg.tlsConfig != nil {
-				serverURL.Scheme = "https"
-			}
-
-			rawJWT, err = tun.auth.GetJWT(ctx, serverURL, func(authURL string) { eventSink.OnAuthRequired(ctx, authURL) })
-			if err != nil {
-				return fmt.Errorf("failed to get authentication JWT: %w", err)
-			}
-
-			err = tun.cfg.jwtCache.StoreJWT(tun.jwtCacheKey(), rawJWT)
-			if err != nil {
-				return fmt.Errorf("failed to store JWT: %w", err)
-			}
-
-			return tun.run(ctx, eventSink, local, rawJWT, retryCount+1)
-		}
-		fallthrough
-	default:
-		_ = tun.cfg.jwtCache.DeleteJWT(tun.jwtCacheKey())
-		return fmt.Errorf("invalid http response code: %d", res.StatusCode)
-	}
-
-	log.Println("connection established")
-	eventSink.OnConnected(ctx)
-
-	errc := make(chan error, 2)
-	go func() {
-		_, err := io.Copy(remote, local)
-		errc <- err
-	}()
-	remoteReader := deBuffer(br, remote)
-	go func() {
-		_, err := io.Copy(local, remoteReader)
-		errc <- err
-	}()
-
-	select {
-	case err := <-errc:
 		return err
-	case <-ctx.Done():
-		return nil
+	} else if errors.Is(err, errUnauthenticated) && retryCount == 0 {
+		serverURL := &url.URL{
+			Scheme: "http",
+			Host:   tun.cfg.proxyHost,
+		}
+		if tun.cfg.tlsConfig != nil {
+			serverURL.Scheme = "https"
+		}
+
+		rawJWT, err = tun.auth.GetJWT(ctx, serverURL, func(authURL string) {
+			eventSink.OnAuthRequired(ctx, authURL)
+		})
+		if err != nil {
+			return fmt.Errorf("failed to get authentication JWT: %w", err)
+		}
+
+		err = tun.cfg.jwtCache.StoreJWT(tun.jwtCacheKey(), rawJWT)
+		if err != nil {
+			return fmt.Errorf("failed to store JWT: %w", err)
+		}
+
+		return tun.run(ctx, eventSink, local, rawJWT, retryCount+1)
+	} else if err != nil {
+		_ = tun.cfg.jwtCache.DeleteJWT(tun.jwtCacheKey())
+		return err
 	}
+
+	return nil
 }
 
 func (tun *Tunnel) jwtCacheKey() string {
 	return fmt.Sprintf("%s|%v", tun.cfg.proxyHost, tun.cfg.tlsConfig != nil)
-}
-
-func deBuffer(br *bufio.Reader, underlying io.Reader) io.Reader {
-	if br.Buffered() == 0 {
-		return underlying
-	}
-	return io.MultiReader(io.LimitReader(br, int64(br.Buffered())), underlying)
 }
