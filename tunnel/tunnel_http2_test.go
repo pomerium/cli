@@ -32,6 +32,7 @@ func TestTCPTunnelViaHTTP2(t *testing.T) {
 
 		defer r.Body.Close()
 		w.WriteHeader(http.StatusOK)
+		w.(http.Flusher).Flush()
 
 		buf := make([]byte, 4)
 		_, err := io.ReadFull(r.Body, buf)
