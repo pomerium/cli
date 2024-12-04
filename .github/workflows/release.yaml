@@ -30,6 +30,9 @@ jobs:
   build-macos:
     runs-on: macos-latest
     needs: metadata
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
     outputs:
       checksums: ${{ steps.build.outputs.checksums }}
     steps:
@@ -41,18 +44,20 @@ jobs:
         with:
           go-version: 1.23.x
 
+      - name: Build
+        id: build
+        run: |
+          mkdir -p bin/${{ matrix.arch }}
+          GOARCH=${{ matrix.arch }} CGO_ENABLED=1 go build -o bin/${{ matrix.arch }} \
+            -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
+            ./cmd/pomerium-cli
+
       - name: Build and archive
         id: build
         run: |
+          gtar czf pomerium-cli-darwin-${{ matrix.arch }}.tar.gz -C bin/${{ matrix.arch }} pomerium-cli
           echo 'checksums<<EOF' >> $GITHUB_OUTPUT
-          for arch in amd64 arm64; do
-            mkdir -p bin/$arch
-            GOARCH=$arch CGO_ENABLED=1 go build -o bin/$arch \
-              -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
-              ./cmd/pomerium-cli
-            gtar czf pomerium-cli-darwin-$arch.tar.gz -C bin/$arch pomerium-cli
-            shasum -a 256 pomerium-cli-darwin-$arch.tar.gz >> $GITHUB_OUTPUT
-          done
+          shasum -a 256 pomerium-cli-darwin-${{ matrix.arch }}.tar.gz >> $GITHUB_OUTPUT
           echo EOF >> $GITHUB_OUTPUT
 
       - name: Upload to release
@@ -63,6 +68,9 @@ jobs:
   build-windows:
     runs-on: windows-latest
     needs: metadata
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
     outputs:
       checksums: ${{ steps.build.outputs.checksums }}
     steps:
@@ -74,21 +82,24 @@ jobs:
         with:
           go-version: 1.23.x
 
-      - name: Build and archive
+      - name: Build
         id: build
         shell: bash
         run: |
+          mkdir -p bin/${{ matrix.arch }}
+          GOARCH=${{ matrix.arch }} CGO_ENABLED=1 go build -o bin/${{ matrix.arch }} \
+            -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
+            ./cmd/pomerium-cli
+
+      - name: Archive
+        id: archive
+        shell: bash
+        run: |
+          zipfile="pomerium-cli-windows-${{ matrix.arch }}.zip"
+          powershell "Compress-Archive -Path bin\\${{ matrix.arch }}\\\* -DestinationPath $zipfile"
+          hash=$(powershell "(Get-FileHash $zipfile -Algorithm SHA256).Hash.ToLower()")
           echo 'checksums<<EOF' >> $GITHUB_OUTPUT
-          for arch in amd64 arm64; do
-            mkdir -p bin/$arch
-            GOARCH=$arch CGO_ENABLED=1 go build -o bin/$arch \
-              -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
-              ./cmd/pomerium-cli
-            zipfile="pomerium-cli-windows-$arch.zip"
-            powershell "Compress-Archive -Path bin\\$arch\\\* -DestinationPath $zipfile"
-            hash=$(powershell "(Get-FileHash $zipfile -Algorithm SHA256).Hash.ToLower()")
-            echo "$hash  $zipfile" >> $GITHUB_OUTPUT
-          done
+          echo "$hash $zipfile" >> $GITHUB_OUTPUT
           echo EOF >> $GITHUB_OUTPUT
 
       - name: Upload to release
