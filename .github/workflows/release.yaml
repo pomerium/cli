@@ -52,8 +52,8 @@ jobs:
             -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
             ./cmd/pomerium-cli
 
-      - name: Build and archive
-        id: build
+      - name: Archive
+        id: archive
         run: |
           gtar czf pomerium-cli-darwin-${{ matrix.arch }}.tar.gz -C bin/${{ matrix.arch }} pomerium-cli
           echo 'checksums<<EOF' >> $GITHUB_OUTPUT
