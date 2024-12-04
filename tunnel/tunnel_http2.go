@@ -12,11 +12,11 @@ import (
 	"golang.org/x/net/http2"
 )
 
-type http2tunnel struct {
+type http2tunneler struct {
 	cfg *config
 }
 
-func (t *http2tunnel) TunnelTCP(
+func (t *http2tunneler) TunnelTCP(
 	ctx context.Context,
 	eventSink EventSink,
 	local io.ReadWriter,

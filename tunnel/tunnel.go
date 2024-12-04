@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/url"
+	"sync"
 	"time"
 
 	backoff "github.com/cenkalti/backoff/v4"
@@ -27,6 +28,9 @@ var (
 type Tunnel struct {
 	cfg  *config
 	auth *authclient.AuthClient
+
+	mu          sync.Mutex
+	tcpTunneler TCPTunneler
 }
 
 // New creates a new Tunnel.
@@ -109,12 +113,13 @@ func (tun *Tunnel) Run(ctx context.Context, local io.ReadWriter, eventSink Event
 }
 
 func (tun *Tunnel) run(ctx context.Context, eventSink EventSink, local io.ReadWriter, rawJWT string, retryCount int) error {
-	err := (&http2tunnel{cfg: tun.cfg}).TunnelTCP(ctx, eventSink, local, rawJWT)
-	if errors.Is(err, errUnsupported) {
-		// fallback to http1
-		err = (&http1tunnel{cfg: tun.cfg}).TunnelTCP(ctx, eventSink, local, rawJWT)
+	tun.mu.Lock()
+	if tun.tcpTunneler == nil {
+		tun.tcpTunneler = tun.pickTCPTunneler(ctx)
 	}
+	tun.mu.Unlock()
 
+	err := tun.tcpTunneler.TunnelTCP(ctx, eventSink, local, rawJWT)
 	if errors.Is(err, errUnavailable) {
 		// don't delete the JWT if we get a service unavailable
 		return err

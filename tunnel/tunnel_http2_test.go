@@ -55,7 +55,7 @@ func TestTCPTunnelViaHTTP2(t *testing.T) {
 		_ = c1.Close()
 	}()
 
-	tun := &http2tunnel{
+	tun := &http2tunneler{
 		getConfig(
 			WithDestinationHost("example.com:9999"),
 			WithProxyHost(srv.Listener.Addr().String()),

@@ -12,11 +12,11 @@ import (
 	"net/url"
 )
 
-type http1tunnel struct {
+type http1tunneler struct {
 	cfg *config
 }
 
-func (t *http1tunnel) TunnelTCP(
+func (t *http1tunneler) TunnelTCP(
 	ctx context.Context,
 	eventSink EventSink,
 	local io.ReadWriter,
