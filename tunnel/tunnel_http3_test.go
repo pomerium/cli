@@ -105,8 +105,8 @@ func TestTCPTunnelViaHTTP3(t *testing.T) {
 			_, _ = w.Write([]byte{5, 6, 7, 8})
 		}),
 	}
-	defer srv.Close()
-	go func() { require.NoError(t, srv.ListenAndServe()) }()
+	t.Cleanup(func() { srv.Close() })
+	go func() { _ = srv.ListenAndServe() }()
 
 	c1, c2 := net.Pipe()
 	go func() {
