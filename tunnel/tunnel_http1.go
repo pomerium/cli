@@ -10,7 +10,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/dunglas/httpsfv"
+	"github.com/quic-go/quic-go/http3"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/errgroup"
 )
 
 type http1tunneler struct {
@@ -104,6 +107,100 @@ func (t *http1tunneler) TunnelTCP(
 	case <-ctx.Done():
 		err = context.Cause(ctx)
 	}
+
+	eventSink.OnDisconnected(ctx, err)
+
+	return err
+}
+
+func (t *http1tunneler) TunnelUDP(
+	ctx context.Context,
+	eventSink EventSink,
+	local UDPPacketReaderWriter,
+	rawJWT string,
+) error {
+	eventSink.OnConnecting(ctx)
+
+	var remote net.Conn
+	var err error
+	if t.cfg.tlsConfig != nil {
+		remote, err = (&tls.Dialer{Config: t.cfg.tlsConfig}).DialContext(ctx, "tcp", t.cfg.proxyHost)
+	} else {
+		remote, err = (&net.Dialer{}).DialContext(ctx, "tcp", t.cfg.proxyHost)
+	}
+	if err != nil {
+		return fmt.Errorf("http/1: failed to establish connection to proxy: %w", err)
+	}
+	defer func() { _ = remote.Close() }()
+	context.AfterFunc(ctx, func() { _ = remote.Close() })
+
+	dstHost, dstPort, err := net.SplitHostPort(t.cfg.dstHost)
+	if err != nil {
+		return fmt.Errorf("http/1: failed to split destination host into host and port")
+	}
+
+	u, err := url.Parse(fmt.Sprintf("https://%s/.well-known/masque/udp/%s/%s/", t.cfg.proxyHost, dstHost, dstPort))
+	if err != nil {
+		return fmt.Errorf("http/1: failed to create destination url: %w", err)
+	}
+
+	capsuleProtocolHeaderValue, err := httpsfv.Marshal(httpsfv.NewItem(true))
+	if err != nil {
+		return fmt.Errorf("http/1: failed to encode capsule protocol header value")
+	}
+
+	hdr := http.Header{
+		"Connection":                {"Upgrade"},
+		"Upgrade":                   {"connect-udp"},
+		http3.CapsuleProtocolHeader: {capsuleProtocolHeaderValue},
+	}
+	if rawJWT != "" {
+		hdr.Set("Authorization", "Pomerium "+rawJWT)
+	}
+	req := (&http.Request{
+		Method: http.MethodGet,
+		URL:    u,
+		Host:   t.cfg.dstHost,
+		Header: hdr,
+	}).WithContext(ctx)
+
+	err = req.Write(remote)
+	if err != nil {
+		return err
+	}
+
+	br := bufio.NewReader(remote)
+	res, err := http.ReadResponse(br, req)
+	if err != nil {
+		return fmt.Errorf("http/1: failed to read HTTP response: %w", err)
+	}
+	defer func() {
+		_ = res.Body.Close()
+	}()
+
+	switch res.StatusCode {
+	case http.StatusOK:
+	case http.StatusServiceUnavailable:
+		return errUnavailable
+	case http.StatusMovedPermanently,
+		http.StatusFound,
+		http.StatusTemporaryRedirect,
+		http.StatusPermanentRedirect:
+		return errUnauthenticated
+	default:
+		return fmt.Errorf("http/1: invalid http response code: %d", res.StatusCode)
+	}
+
+	eventSink.OnConnected(ctx)
+
+	eg, ectx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		return streamFromCapsuleDatagramsToUDPPacketWriter(ectx, local, deBuffer(br, remote))
+	})
+	eg.Go(func() error {
+		return streamFromUDPPacketReaderToCapsuleDatagrams(ectx, remote, local)
+	})
+	err = eg.Wait()
 
 	eventSink.OnDisconnected(ctx, err)
 
