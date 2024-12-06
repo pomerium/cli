@@ -8,8 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/http/httptrace"
-	"net/textproto"
 	"net/url"
 
 	"github.com/dunglas/httpsfv"
@@ -122,13 +120,6 @@ func (t *http1tunneler) TunnelUDP(
 	rawJWT string,
 ) error {
 	eventSink.OnConnecting(ctx)
-
-	ctx = httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
-		Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
-			fmt.Println(">>>GOT 1XX", code, header)
-			return nil
-		},
-	})
 
 	var remote net.Conn
 	var err error
