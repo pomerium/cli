@@ -100,6 +100,18 @@ func (tun *Tunnel) RunListener(ctx context.Context, listenerAddress string) erro
 
 // Run establishes a TCP tunnel via HTTP Connect and forwards all traffic from/to local.
 func (tun *Tunnel) Run(ctx context.Context, local io.ReadWriter, eventSink EventSink) error {
+	return tun.runWithJWT(ctx, eventSink, func(ctx context.Context, rawJWT string) error {
+		tun.mu.Lock()
+		if tun.tcpTunneler == nil {
+			tun.tcpTunneler = tun.pickTCPTunneler(ctx)
+		}
+		tun.mu.Unlock()
+
+		return tun.tcpTunneler.TunnelTCP(ctx, eventSink, local, rawJWT)
+	})
+}
+
+func (tun *Tunnel) runWithJWT(ctx context.Context, eventSink EventSink, handler func(ctx context.Context, rawJWT string) error) error {
 	rawJWT, err := tun.cfg.jwtCache.LoadJWT(tun.jwtCacheKey())
 	switch {
 	// if there is no error, or it is one of the pre-defined cliutil errors,
@@ -111,21 +123,9 @@ func (tun *Tunnel) Run(ctx context.Context, local io.ReadWriter, eventSink Event
 	default:
 		return fmt.Errorf("tunnel: failed to load JWT: %w", err)
 	}
-	return tun.run(ctx, eventSink, local, rawJWT, 0)
-}
 
-func (tun *Tunnel) run(ctx context.Context, eventSink EventSink, local io.ReadWriter, rawJWT string, retryCount int) error {
-	tun.mu.Lock()
-	if tun.tcpTunneler == nil {
-		tun.tcpTunneler = tun.pickTCPTunneler(ctx)
-	}
-	tun.mu.Unlock()
-
-	err := tun.tcpTunneler.TunnelTCP(ctx, eventSink, local, rawJWT)
-	if errors.Is(err, errUnavailable) {
-		// don't delete the JWT if we get a service unavailable
-		return err
-	} else if errors.Is(err, errUnauthenticated) && retryCount == 0 {
+	err = handler(ctx, rawJWT)
+	if errors.Is(err, errUnauthenticated) {
 		serverURL := &url.URL{
 			Scheme: "http",
 			Host:   tun.cfg.proxyHost,
@@ -138,15 +138,20 @@ func (tun *Tunnel) run(ctx context.Context, eventSink EventSink, local io.ReadWr
 			eventSink.OnAuthRequired(ctx, authURL)
 		})
 		if err != nil {
-			return fmt.Errorf("failed to get authentication JWT: %w", err)
+			return fmt.Errorf("tunnel: failed to get authentication JWT: %w", err)
 		}
 
 		err = tun.cfg.jwtCache.StoreJWT(tun.jwtCacheKey(), rawJWT)
 		if err != nil {
-			return fmt.Errorf("failed to store JWT: %w", err)
+			return fmt.Errorf("tunnel: failed to store JWT: %w", err)
 		}
 
-		return tun.run(ctx, eventSink, local, rawJWT, retryCount+1)
+		err = handler(ctx, rawJWT)
+	}
+
+	if errors.Is(err, errUnavailable) {
+		// don't delete the JWT if we get a service unavailable
+		return err
 	} else if err != nil {
 		_ = tun.cfg.jwtCache.DeleteJWT(tun.jwtCacheKey())
 		return err
