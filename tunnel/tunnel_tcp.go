@@ -21,7 +21,7 @@ type TCPTunneler interface {
 
 // PickTCPTunneler picks a tcp tunneler for the given proxy.
 func (tun *Tunnel) pickTCPTunneler(ctx context.Context) TCPTunneler {
-	log.Ctx(ctx).With().Str("component", "pick-tcp-tunneler").Logger().WithContext(ctx)
+	ctx = log.Ctx(ctx).With().Str("component", "pick-tcp-tunneler").Logger().WithContext(ctx)
 
 	fallback := &http1tunneler{cfg: tun.cfg}
 
