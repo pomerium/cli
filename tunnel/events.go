@@ -2,6 +2,8 @@ package tunnel
 
 import (
 	"context"
+
+	"github.com/rs/zerolog/log"
 )
 
 // EventSink is used to notify on the tunnel state transition
@@ -18,7 +20,7 @@ type EventSink interface {
 	OnDisconnected(context.Context, error)
 }
 
-// DiscardEvents returns a broadcaster that discards all events
+// DiscardEvents returns an event sink that discards all events.
 func DiscardEvents() EventSink {
 	return discardEvents{}
 }
@@ -38,3 +40,26 @@ func (discardEvents) OnAuthRequired(_ context.Context, _ string) {}
 
 // OnDisconnected is called when connection to client was closed
 func (discardEvents) OnDisconnected(_ context.Context, _ error) {}
+
+type logEvents struct{}
+
+// LogEvents returns an event sink that logs all events.
+func LogEvents() EventSink {
+	return logEvents{}
+}
+
+func (logEvents) OnConnecting(ctx context.Context) {
+	log.Ctx(ctx).Info().Msg("connecting")
+}
+
+func (logEvents) OnConnected(ctx context.Context) {
+	log.Ctx(ctx).Info().Msg("connected")
+}
+
+func (logEvents) OnAuthRequired(ctx context.Context, authURL string) {
+	log.Ctx(ctx).Info().Str("auth-url", authURL).Msg("auth required")
+}
+
+func (logEvents) OnDisconnected(ctx context.Context, err error) {
+	log.Ctx(ctx).Error().Err(err).Msg("disconnected")
+}

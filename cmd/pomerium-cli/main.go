@@ -50,6 +50,7 @@ func signalContext() context.Context {
 
 func setupLogger() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	zerolog.DefaultContextLogger = &log.Logger
 }
 
 func fatalf(msg string, args ...interface{}) {

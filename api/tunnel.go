@@ -6,12 +6,12 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -143,7 +143,7 @@ func tunnelAcceptLoop(ctx context.Context, id string, li net.Listener, tun Tunne
 			}
 
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-				log.Printf("failed to accept local connection: %v\n", err)
+				log.Ctx(ctx).Error().Err(err).Msg("failed to accept local connection")
 				select {
 				case <-time.After(bo.NextBackOff()):
 				case <-ctx.Done():
@@ -160,7 +160,7 @@ func tunnelAcceptLoop(ctx context.Context, id string, li net.Listener, tun Tunne
 			cEvt := evt.withPeer(conn)
 			err := tun.Run(ctx, conn, cEvt)
 			if err != nil {
-				log.Printf("error serving local connection %s: %v\n", id, err)
+				log.Ctx(ctx).Error().Err(err).Msg("error serving local connection")
 			}
 		}(c)
 	}
@@ -183,13 +183,13 @@ func (evt *tunnelEvents) update(ctx context.Context, upd *pb.ConnectionStatusUpd
 	upd.PeerAddr = evt.peer
 	upd.Id = evt.id
 	if err := evt.Update(ctx, upd); err != nil {
-		log.Printf("failed to send status update %s: %v\n", protojson.Format(upd), err)
+		log.Ctx(ctx).Error().Err(err).Str("update", protojson.Format(upd)).Msg("failed to send status update")
 	}
 }
 
 func (evt *tunnelEvents) onListening(ctx context.Context) {
 	if err := evt.Reset(ctx, evt.id); err != nil {
-		log.Printf("failed to reset connection history for %s: %v\n", evt.id, err)
+		log.Ctx(ctx).Error().Err(err).Str("event-id", evt.id).Msg("failed to reset connection history")
 	}
 	evt.update(ctx, &pb.ConnectionStatusUpdate{
 		Status: pb.ConnectionStatusUpdate_CONNECTION_STATUS_LISTENING,
@@ -206,6 +206,7 @@ func (evt *tunnelEvents) onTunnelClosed() {
 
 // OnConnecting is called when listener is accepting a new connection from client
 func (evt *tunnelEvents) OnConnecting(ctx context.Context) {
+	log.Ctx(ctx).Info().Msg("connecting")
 	evt.update(ctx, &pb.ConnectionStatusUpdate{
 		Status: pb.ConnectionStatusUpdate_CONNECTION_STATUS_CONNECTING,
 	})
@@ -214,6 +215,7 @@ func (evt *tunnelEvents) OnConnecting(ctx context.Context) {
 // OnConnected is called when a connection is successfully
 // established to the remote destination via pomerium proxy
 func (evt *tunnelEvents) OnConnected(ctx context.Context) {
+	log.Ctx(ctx).Info().Msg("connected")
 	evt.update(ctx, &pb.ConnectionStatusUpdate{
 		Status: pb.ConnectionStatusUpdate_CONNECTION_STATUS_CONNECTED,
 	})
@@ -222,6 +224,7 @@ func (evt *tunnelEvents) OnConnected(ctx context.Context) {
 // OnAuthRequired is called after listener accepted a new connection from client,
 // but has to perform user authentication first
 func (evt *tunnelEvents) OnAuthRequired(ctx context.Context, u string) {
+	log.Ctx(ctx).Info().Str("auth-url", u).Msg("auth required")
 	evt.update(ctx, &pb.ConnectionStatusUpdate{
 		Status:  pb.ConnectionStatusUpdate_CONNECTION_STATUS_AUTH_REQUIRED,
 		AuthUrl: &u,
@@ -230,6 +233,7 @@ func (evt *tunnelEvents) OnAuthRequired(ctx context.Context, u string) {
 
 // OnDisconnected is called when connection to client was closed
 func (evt *tunnelEvents) OnDisconnected(ctx context.Context, err error) {
+	log.Ctx(ctx).Error().Err(err).Msg("disconnected")
 	e := &pb.ConnectionStatusUpdate{
 		Status: pb.ConnectionStatusUpdate_CONNECTION_STATUS_DISCONNECTED,
 	}

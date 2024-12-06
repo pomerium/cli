@@ -6,13 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/url"
 	"sync"
 	"time"
 
 	backoff "github.com/cenkalti/backoff/v4"
+	"github.com/rs/zerolog/log"
 
 	"github.com/pomerium/cli/authclient"
 	"github.com/pomerium/cli/jwt"
@@ -49,12 +49,14 @@ func New(options ...Option) *Tunnel {
 // RunListener runs a network listener on the given address. For each
 // incoming connection a new TCP tunnel is established via Run.
 func (tun *Tunnel) RunListener(ctx context.Context, listenerAddress string) error {
+	ctx = log.Ctx(ctx).With().Str("component", "tunnel").Logger().WithContext(ctx)
+
 	li, err := net.Listen("tcp", listenerAddress)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = li.Close() }()
-	log.Println("listening on " + li.Addr().String())
+	log.Ctx(ctx).Info().Str("addr", li.Addr().String()).Msg("started tcp listener")
 
 	go func() {
 		<-ctx.Done()
@@ -73,7 +75,7 @@ func (tun *Tunnel) RunListener(ctx context.Context, listenerAddress string) erro
 			}
 
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-				log.Printf("temporarily failed to accept local connection: %v\n", err)
+				log.Ctx(ctx).Error().Err(err).Msg("temporarily failed to accept local connection")
 				select {
 				case <-time.After(bo.NextBackOff()):
 				case <-ctx.Done():
@@ -88,9 +90,9 @@ func (tun *Tunnel) RunListener(ctx context.Context, listenerAddress string) erro
 		go func(conn net.Conn) {
 			defer func() { _ = c.Close() }()
 
-			err := tun.Run(ctx, c, DiscardEvents())
+			err := tun.Run(ctx, c, LogEvents())
 			if err != nil {
-				log.Printf("error serving local connection: %v\n", err)
+				log.Ctx(ctx).Error().Err(err).Msg("error serving local connection")
 			}
 		}(c)
 	}

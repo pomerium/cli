@@ -2,7 +2,8 @@ package tunnel
 
 import (
 	"crypto/tls"
-	"log"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/pomerium/cli/jwt"
 )
@@ -22,7 +23,7 @@ func getConfig(options ...Option) *config {
 	if jwtCache, err := jwt.NewLocalJWTCache(); err == nil {
 		WithJWTCache(jwtCache)(cfg)
 	} else {
-		log.Printf("error creating local JWT cache, using in-memory JWT cache: %v\n", err)
+		log.Error().Err(err).Msg("error creating local JWT cache, using in-memory JWT cache")
 		WithJWTCache(jwt.NewMemoryJWTCache())(cfg)
 	}
 	for _, o := range options {
