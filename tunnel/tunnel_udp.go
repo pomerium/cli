@@ -67,6 +67,10 @@ func (tun *Tunnel) RunUDPSessionManager(ctx context.Context, conn *net.UDPConn) 
 		tunneler := &http1tunneler{cfg: tun.cfg}
 		eventSink := LogEvents()
 		return tun.runWithJWT(ctx, eventSink, func(ctx context.Context, rawJWT string) error {
+			// always disconnect after 10 minutes
+			ctx, clearTimeout := context.WithTimeout(ctx, 10*time.Minute)
+			defer clearTimeout()
+
 			return tunneler.TunnelUDP(ctx, eventSink, urw, rawJWT)
 		})
 	}).run(ctx)
@@ -149,6 +153,7 @@ func (mgr *udpSessionManager) dispatch(ctx context.Context) error {
 					case stopped <- s:
 					}
 				}()
+				sessions[packet.Addr] = s
 			}
 			if dropped := sendOrDrop(s.in, packet); dropped > 0 {
 				log.Ctx(ctx).Error().Int("count", dropped).Msg("dropped session packets")
@@ -273,6 +278,7 @@ func readUDPCapsuleDatagram(
 		return nil, err
 	}
 
+	// ignore the datagram type
 	_, err = quicvarint.Read(quicvarint.NewReader(r))
 	if err != nil {
 		return nil, err

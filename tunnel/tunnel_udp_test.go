@@ -33,6 +33,7 @@ func TestUDPSessionManager(t *testing.T) {
 		require.Equal(t, http.MethodGet, r.Method)
 		require.Equal(t, r.Host, "example.com:9999")
 		require.Equal(t, r.URL.Path, "/.well-known/masque/udp/example.com/9999/")
+		w.Header().Set("Transfer-Encoding", "identity")
 		w.WriteHeader(200)
 		w.(http.Flusher).Flush()
 
@@ -48,6 +49,8 @@ func TestUDPSessionManager(t *testing.T) {
 		require.NoError(t, err)
 		err = brw.Flush()
 		require.NoError(t, err)
+
+		<-ctx.Done()
 	}))
 	defer srv.Close()
 
@@ -79,7 +82,7 @@ func TestUDPSessionManager(t *testing.T) {
 	assert.Equal(t, 16, n)
 	assert.NoError(t, err)
 
-	payload := make([]byte, 2<<15)
+	payload := make([]byte, maxUDPPacketSize)
 	n, _, err = conn.ReadFromUDP(payload)
 	assert.Equal(t, []byte("RECV HELLO WORLD"), payload[:n])
 	assert.Equal(t, 16, n)

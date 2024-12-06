@@ -8,6 +8,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
+	"net/textproto"
 	"net/url"
 
 	"github.com/dunglas/httpsfv"
@@ -121,6 +123,13 @@ func (t *http1tunneler) TunnelUDP(
 ) error {
 	eventSink.OnConnecting(ctx)
 
+	ctx = httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{
+		Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
+			fmt.Println(">>>GOT 1XX", code, header)
+			return nil
+		},
+	})
+
 	var remote net.Conn
 	var err error
 	if t.cfg.tlsConfig != nil {
@@ -195,7 +204,7 @@ func (t *http1tunneler) TunnelUDP(
 
 	eg, ectx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		return streamFromCapsuleDatagramsToUDPPacketWriter(ectx, local, deBuffer(br, remote))
+		return streamFromCapsuleDatagramsToUDPPacketWriter(ectx, local, res.Body)
 	})
 	eg.Go(func() error {
 		return streamFromUDPPacketReaderToCapsuleDatagrams(ectx, remote, local)
