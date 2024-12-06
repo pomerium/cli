@@ -165,7 +165,7 @@ func hijackProxyConnect(req *http.Request, client net.Conn, ctx *goproxy.ProxyCt
 		log.Error().Err(err).Msg("Failed to send response to client")
 		return
 	}
-	if err := tun.Run(req.Context(), client, tunnel.DiscardEvents()); err != nil {
+	if err := tun.Run(req.Context(), client, tunnel.LogEvents()); err != nil {
 		log.Error().Err(err).Msg("Failed to run TCP tunnel")
 	}
 }

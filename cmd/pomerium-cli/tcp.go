@@ -67,7 +67,7 @@ var tcpCmd = &cobra.Command{
 		)
 
 		if tcpCmdOptions.listen == "-" {
-			err = tun.Run(ctx, readWriter{Reader: os.Stdin, Writer: os.Stdout}, tunnel.DiscardEvents())
+			err = tun.Run(ctx, readWriter{Reader: os.Stdin, Writer: os.Stdout}, tunnel.LogEvents())
 		} else {
 			err = tun.RunListener(ctx, tcpCmdOptions.listen)
 		}

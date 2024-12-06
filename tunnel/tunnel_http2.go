@@ -5,10 +5,10 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
+	"github.com/rs/zerolog/log"
 	"golang.org/x/net/http2"
 )
 
@@ -22,6 +22,8 @@ func (t *http2tunneler) TunnelTCP(
 	local io.ReadWriter,
 	rawJWT string,
 ) error {
+	ctx = log.Ctx(ctx).With().Str("component", "http2tunneler").Logger().WithContext(ctx)
+
 	eventSink.OnConnecting(ctx)
 
 	hdr := http.Header{}
@@ -38,16 +40,13 @@ func (t *http2tunneler) TunnelTCP(
 
 	raw, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", t.cfg.proxyHost)
 	if err != nil {
-		return fmt.Errorf("failed to establish connection to proxy: %w", err)
+		return fmt.Errorf("http/2: failed to establish connection to proxy: %w", err)
 	}
-	defer func() {
-		_ = raw.Close()
-		log.Println("connection closed")
-	}()
+	defer func() { _ = raw.Close() }()
 
 	remote, ok := raw.(*tls.Conn)
 	if !ok {
-		return fmt.Errorf("unexpected connection type returned from dial: %T", raw)
+		return fmt.Errorf("http/2: unexpected connection type returned from dial: %T", raw)
 	}
 
 	protocol := remote.ConnectionState().NegotiatedProtocol
@@ -57,7 +56,7 @@ func (t *http2tunneler) TunnelTCP(
 
 	cc, err := (&http2.Transport{}).NewClientConn(remote)
 	if err != nil {
-		return fmt.Errorf("failed to establish http2 connection: %w", err)
+		return fmt.Errorf("http/2: failed to establish connection: %w", err)
 	}
 	defer cc.Close()
 
@@ -74,7 +73,7 @@ func (t *http2tunneler) TunnelTCP(
 
 	res, err := cc.RoundTrip(req)
 	if err != nil {
-		return fmt.Errorf("error making http2 connect request: %w", err)
+		return fmt.Errorf("http/2: error making connect request: %w", err)
 	}
 	defer res.Body.Close()
 
@@ -88,10 +87,9 @@ func (t *http2tunneler) TunnelTCP(
 		http.StatusPermanentRedirect:
 		return errUnauthenticated
 	default:
-		return fmt.Errorf("invalid http response code: %d", res.StatusCode)
+		return fmt.Errorf("http/2: invalid http response code: %d", res.StatusCode)
 	}
 
-	log.Println("connection established via http2")
 	eventSink.OnConnected(ctx)
 
 	errc := make(chan error, 2)

@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
 	"github.com/quic-go/quic-go/http3"
+	"github.com/rs/zerolog/log"
 )
 
 type http3tunneler struct {
@@ -21,6 +21,8 @@ func (t *http3tunneler) TunnelTCP(
 	local io.ReadWriter,
 	rawJWT string,
 ) error {
+	ctx = log.Ctx(ctx).With().Str("component", "http3tunneler").Logger().WithContext(ctx)
+
 	eventSink.OnConnecting(ctx)
 
 	cfg := t.cfg.tlsConfig
@@ -33,10 +35,7 @@ func (t *http3tunneler) TunnelTCP(
 	transport := (&http3.Transport{
 		TLSClientConfig: cfg,
 	})
-	defer func() {
-		transport.Close()
-		log.Println("connection closed")
-	}()
+	defer func() { transport.Close() }()
 
 	pr, pw := io.Pipe()
 
@@ -74,7 +73,6 @@ func (t *http3tunneler) TunnelTCP(
 		return fmt.Errorf("http/3: invalid response code: %d", res.StatusCode)
 	}
 
-	log.Println("http/3: connection established")
 	eventSink.OnConnected(ctx)
 
 	errc := make(chan error, 2)
@@ -94,5 +92,6 @@ func (t *http3tunneler) TunnelTCP(
 	}
 
 	eventSink.OnDisconnected(ctx, err)
+
 	return err
 }

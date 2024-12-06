@@ -6,10 +6,11 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
+
+	"github.com/rs/zerolog/log"
 )
 
 type http1tunneler struct {
@@ -22,6 +23,8 @@ func (t *http1tunneler) TunnelTCP(
 	local io.ReadWriter,
 	rawJWT string,
 ) error {
+	ctx = log.Ctx(ctx).With().Str("component", "http1tunneler").Logger().WithContext(ctx)
+
 	eventSink.OnConnecting(ctx)
 
 	hdr := http.Header{}
@@ -44,11 +47,10 @@ func (t *http1tunneler) TunnelTCP(
 		remote, err = (&net.Dialer{}).DialContext(ctx, "tcp", t.cfg.proxyHost)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to establish connection to proxy: %w", err)
+		return fmt.Errorf("http/1: failed to establish connection to proxy: %w", err)
 	}
 	defer func() {
 		_ = remote.Close()
-		log.Println("connection closed")
 	}()
 	if done := ctx.Done(); done != nil {
 		go func() {
@@ -65,7 +67,7 @@ func (t *http1tunneler) TunnelTCP(
 	br := bufio.NewReader(remote)
 	res, err := http.ReadResponse(br, req)
 	if err != nil {
-		return fmt.Errorf("failed to read HTTP response: %w", err)
+		return fmt.Errorf("http/1: failed to read HTTP response: %w", err)
 	}
 	defer func() {
 		_ = res.Body.Close()
@@ -81,10 +83,9 @@ func (t *http1tunneler) TunnelTCP(
 		http.StatusPermanentRedirect:
 		return errUnauthenticated
 	default:
-		return fmt.Errorf("invalid http response code: %d", res.StatusCode)
+		return fmt.Errorf("http/1: invalid http response code: %d", res.StatusCode)
 	}
 
-	log.Println("connection established")
 	eventSink.OnConnected(ctx)
 
 	errc := make(chan error, 2)
