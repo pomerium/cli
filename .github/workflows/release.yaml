@@ -114,8 +114,9 @@ jobs:
         shell: bash
         run: |
           dotnet tool install --global wix
+          wix extension add -g WixToolset.UI.wixext
           msifile="pomerium-cli-windows-${{ matrix.arch.go }}.msi"
-          wix build -arch ${{ matrix.arch.wix }} -b bin\\${{ matrix.arch.go }} -d "version=${{ needs.metadata.outputs.versionNumber }}" -o "$msifile" msi/PomeriumCli.wxs
+          wix build -arch ${{ matrix.arch.wix }} -ext WixToolset.UI.wixext -b bin\\${{ matrix.arch.go }} -d "version=${{ needs.metadata.outputs.versionNumber }}" -o "$msifile" msi/PomeriumCli.wxs msi/WixUI_InstallDir_NoLicense.wxs
           hash=$(powershell "(Get-FileHash $msifile -Algorithm SHA256).Hash.ToLower()")
           echo 'checksums<<EOF' >> $GITHUB_OUTPUT
           echo "$hash $zipfile" >> $GITHUB_OUTPUT
