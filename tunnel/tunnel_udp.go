@@ -17,6 +17,8 @@ import (
 
 const maxUDPPacketSize = (2 << 15) - 1
 
+var contextIDZero = quicvarint.Append(nil, 0)
+
 type UDPPacket struct {
 	Addr    netip.AddrPort
 	Payload []byte
@@ -64,7 +66,7 @@ func (tun *Tunnel) RunUDPListener(ctx context.Context, listenerAddress string) e
 
 func (tun *Tunnel) RunUDPSessionManager(ctx context.Context, conn *net.UDPConn) error {
 	return newUDPSessionManager(conn, func(ctx context.Context, urw UDPPacketReaderWriter) error {
-		tunneler := &http1tunneler{cfg: tun.cfg}
+		tunneler := &http3tunneler{cfg: tun.cfg}
 		eventSink := LogEvents()
 		return tun.runWithJWT(ctx, eventSink, func(ctx context.Context, rawJWT string) error {
 			// always disconnect after 10 minutes
