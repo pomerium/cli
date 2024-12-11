@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sync"
 
 	"github.com/dunglas/httpsfv"
 	"github.com/quic-go/quic-go"
@@ -232,6 +233,7 @@ func (t *http3tunneler) getTransport(enableDatagrams bool) (*http3.Transport, er
 }
 
 func (t *http3tunneler) readLocal(ctx context.Context, dst http3.Stream, src UDPPacketReader) error {
+	var logMaxDatagramPayloadSizeOnce sync.Once
 	for {
 		packet, err := src.ReadPacket(ctx)
 		if err != nil {
@@ -243,7 +245,17 @@ func (t *http3tunneler) readLocal(ctx context.Context, dst http3.Stream, src UDP
 		data = append(data, packet.Payload...)
 
 		err = dst.SendDatagram(data)
-		if err != nil {
+
+		tooLargeError := &quic.DatagramTooLargeError{}
+		if errors.As(err, &tooLargeError) {
+			logMaxDatagramPayloadSizeOnce.Do(func() {
+				log.Ctx(ctx).Error().
+					Int64("max-datagram-payload-size", tooLargeError.MaxDatagramPayloadSize).
+					Int("datagram-size", len(data)).
+					Msg("datagram exceeded max datagram payload size and was dropped")
+			})
+			// ignore
+		} else if err != nil {
 			return fmt.Errorf("http/3: error sending datagram: %w", err)
 		}
 	}

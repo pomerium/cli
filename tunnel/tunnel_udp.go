@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"net/netip"
+	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/quic-go/quic-go/http3"
@@ -44,6 +47,47 @@ type UDPTunneler interface {
 	) error
 }
 
+// PickUDPTunneler picks a UDP tunneler for the given proxy.
+func (tun *Tunnel) pickUDPTunneler(ctx context.Context) UDPTunneler {
+	ctx = log.Ctx(ctx).With().Str("component", "pick-UDP-tunneler").Logger().WithContext(ctx)
+
+	fallback := &http1tunneler{cfg: tun.cfg}
+
+	// if we're not using TLS, only HTTP1 is supported
+	if tun.cfg.tlsConfig == nil {
+		log.Ctx(ctx).Info().Msg("tls not enabled, using http1")
+		return fallback
+	}
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			ForceAttemptHTTP2: true,
+			TLSClientConfig:   tun.cfg.tlsConfig,
+		},
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://"+tun.cfg.proxyHost, nil)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to create probe request, falling back to http1")
+		return fallback
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to make probe request, falling back to http1")
+		return fallback
+	}
+	res.Body.Close()
+
+	if v := res.Header.Get("Alt-Svc"); strings.Contains(v, "h3") {
+		log.Ctx(ctx).Info().Msg("using http3")
+		return &http3tunneler{cfg: tun.cfg}
+	}
+
+	log.Ctx(ctx).Info().Msg("using http1")
+	return fallback
+}
+
 func (tun *Tunnel) RunUDPListener(ctx context.Context, listenerAddress string) error {
 	ctx = log.Ctx(ctx).With().Str("listener-addr", listenerAddress).Logger().WithContext(ctx)
 
@@ -66,7 +110,7 @@ func (tun *Tunnel) RunUDPListener(ctx context.Context, listenerAddress string) e
 
 func (tun *Tunnel) RunUDPSessionManager(ctx context.Context, conn *net.UDPConn) error {
 	return newUDPSessionManager(conn, func(ctx context.Context, urw UDPPacketReaderWriter) error {
-		tunneler := &http3tunneler{cfg: tun.cfg}
+		tunneler := tun.pickUDPTunneler(ctx)
 		eventSink := LogEvents()
 		return tun.runWithJWT(ctx, eventSink, func(ctx context.Context, rawJWT string) error {
 			// always disconnect after 10 minutes
@@ -85,6 +129,9 @@ type udpSessionManager struct {
 	handler udpSessionHandler
 	in      chan UDPPacket
 	out     chan UDPPacket
+
+	droppedInboundPackets  atomic.Int64
+	droppedOutboundPackets atomic.Int64
 }
 
 func newUDPSessionManager(conn *net.UDPConn, handler udpSessionHandler) *udpSessionManager {
@@ -102,6 +149,7 @@ func (mgr *udpSessionManager) run(ctx context.Context) error {
 	eg.Go(func() error { return mgr.read(ectx) })
 	eg.Go(func() error { return mgr.dispatch(ectx) })
 	eg.Go(func() error { return mgr.write(ectx) })
+	eg.Go(func() error { return mgr.report(ectx) })
 	err := eg.Wait()
 	log.Ctx(ctx).Error().Err(err).Msg("stopped udp session manager")
 	return err
@@ -158,12 +206,12 @@ func (mgr *udpSessionManager) dispatch(ctx context.Context) error {
 				sessions[packet.Addr] = s
 			}
 			if dropped := sendOrDrop(s.in, packet); dropped > 0 {
-				log.Ctx(ctx).Error().Int("count", dropped).Msg("dropped session packets")
+				mgr.droppedInboundPackets.Add(int64(dropped))
 			}
 		case s := <-stopped:
 			delete(sessions, s.addr)
 			if dropped := dropAll(s.in); dropped > 0 {
-				log.Ctx(ctx).Error().Int("count", dropped).Msg("dropped session packets")
+				mgr.droppedInboundPackets.Add(int64(dropped))
 			}
 		}
 	}
@@ -178,7 +226,7 @@ func (mgr *udpSessionManager) write(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			if dropped := dropAll(mgr.out); dropped > 0 {
-				log.Ctx(ctx).Error().Int("count", dropped).Msg("dropped outbound packets")
+				mgr.droppedOutboundPackets.Add(int64(dropped))
 			}
 			return context.Cause(ctx)
 		case packet = <-mgr.out:
@@ -193,6 +241,27 @@ func (mgr *udpSessionManager) write(ctx context.Context) error {
 			default:
 			}
 			return fmt.Errorf("udp-session-manager: error writing udp packet: %w", err)
+		}
+	}
+}
+
+func (mgr *udpSessionManager) report(ctx context.Context) error {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return context.Cause(ctx)
+		case <-ticker.C:
+		}
+
+		inbound, outbound := mgr.droppedInboundPackets.Swap(0), mgr.droppedOutboundPackets.Swap(0)
+		if inbound > 0 || outbound > 0 {
+			log.Ctx(ctx).Error().
+				Int64("inbound", inbound).
+				Int64("outbound", outbound).
+				Msg("dropped packets")
 		}
 	}
 }
