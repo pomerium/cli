@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/netip"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/quic-go/quic-go/http3"
@@ -129,9 +128,6 @@ type udpSessionManager struct {
 	handler udpSessionHandler
 	in      chan UDPPacket
 	out     chan UDPPacket
-
-	droppedInboundPackets  atomic.Int64
-	droppedOutboundPackets atomic.Int64
 }
 
 func newUDPSessionManager(conn *net.UDPConn, handler udpSessionHandler) *udpSessionManager {
@@ -149,7 +145,6 @@ func (mgr *udpSessionManager) run(ctx context.Context) error {
 	eg.Go(func() error { return mgr.read(ectx) })
 	eg.Go(func() error { return mgr.dispatch(ectx) })
 	eg.Go(func() error { return mgr.write(ectx) })
-	eg.Go(func() error { return mgr.report(ectx) })
 	err := eg.Wait()
 	log.Ctx(ctx).Error().Err(err).Msg("stopped udp session manager")
 	return err
@@ -188,9 +183,6 @@ func (mgr *udpSessionManager) dispatch(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			if dropped := dropAll(mgr.in); dropped > 0 {
-				log.Ctx(ctx).Error().Int("count", dropped).Msg("dropped inbound packets")
-			}
 			return context.Cause(ctx)
 		case packet := <-mgr.in:
 			s, ok := sessions[packet.Addr]
@@ -205,14 +197,9 @@ func (mgr *udpSessionManager) dispatch(ctx context.Context) error {
 				}()
 				sessions[packet.Addr] = s
 			}
-			if dropped := sendOrDrop(s.in, packet); dropped > 0 {
-				mgr.droppedInboundPackets.Add(int64(dropped))
-			}
+			s.HandlePacket(ctx, packet)
 		case s := <-stopped:
 			delete(sessions, s.addr)
-			if dropped := dropAll(s.in); dropped > 0 {
-				mgr.droppedInboundPackets.Add(int64(dropped))
-			}
 		}
 	}
 }
@@ -225,9 +212,6 @@ func (mgr *udpSessionManager) write(ctx context.Context) error {
 		var packet UDPPacket
 		select {
 		case <-ctx.Done():
-			if dropped := dropAll(mgr.out); dropped > 0 {
-				mgr.droppedOutboundPackets.Add(int64(dropped))
-			}
 			return context.Cause(ctx)
 		case packet = <-mgr.out:
 		}
@@ -245,38 +229,30 @@ func (mgr *udpSessionManager) write(ctx context.Context) error {
 	}
 }
 
-func (mgr *udpSessionManager) report(ctx context.Context) error {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return context.Cause(ctx)
-		case <-ticker.C:
-		}
-
-		inbound, outbound := mgr.droppedInboundPackets.Swap(0), mgr.droppedOutboundPackets.Swap(0)
-		if inbound > 0 || outbound > 0 {
-			log.Ctx(ctx).Error().
-				Int64("inbound", inbound).
-				Int64("outbound", outbound).
-				Msg("dropped packets")
-		}
-	}
-}
-
 type udpSession struct {
 	mgr  *udpSessionManager
 	addr netip.AddrPort
 	in   chan UDPPacket
+
+	cancel    context.CancelCauseFunc
+	cancelCtx context.Context
 }
 
 func newUDPSession(mgr *udpSessionManager, addr netip.AddrPort) *udpSession {
-	return &udpSession{
+	s := &udpSession{
 		mgr:  mgr,
 		addr: addr,
-		in:   make(chan UDPPacket, 128),
+		in:   make(chan UDPPacket, 1),
+	}
+	s.cancelCtx, s.cancel = context.WithCancelCause(context.Background())
+	return s
+}
+
+func (s *udpSession) HandlePacket(ctx context.Context, packet UDPPacket) {
+	select {
+	case <-ctx.Done():
+	case <-s.cancelCtx.Done():
+	case s.in <- packet:
 	}
 }
 
@@ -306,39 +282,8 @@ func (s *udpSession) run(ctx context.Context) error {
 	log.Ctx(ctx).Info().Msg("starting udp session")
 	err := s.mgr.handler(ctx, s)
 	log.Ctx(ctx).Error().Err(err).Msg("stopped udp session")
+	s.cancel(err)
 	return err
-}
-
-func dropAll[T any](ch chan T) (dropped int) {
-	for {
-		select {
-		case <-ch:
-			dropped++
-		default:
-			return dropped
-		}
-	}
-}
-
-func sendOrDrop[T any](ch chan T, packet T) (dropped int) {
-	for {
-		select {
-		case ch <- packet:
-			return dropped
-		default:
-		}
-
-		if cap(ch) == 0 {
-			dropped++
-			return dropped
-		}
-
-		select {
-		case <-ch:
-			dropped++
-		default:
-		}
-	}
 }
 
 func readUDPCapsuleDatagram(
