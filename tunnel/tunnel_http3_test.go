@@ -182,6 +182,19 @@ func TestUDPTunnelViaHTTP3(t *testing.T) {
 	}
 	t.Cleanup(func() { srv.Close() })
 	go func() { _ = srv.ListenAndServe() }()
+	go func() {
+		hsrv := &http.Server{
+			Addr: "127.0.0.1:" + proxyPort,
+			TLSConfig: &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			},
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Alt-Svc", `h3=":`+proxyPort+`"`)
+				w.WriteHeader(http.StatusNoContent)
+			}),
+		}
+		_ = hsrv.ListenAndServeTLS("", "")
+	}()
 
 	tun := New(
 		WithDestinationHost("example.com:9999"),
