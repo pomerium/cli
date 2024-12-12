@@ -7,6 +7,7 @@ toolchain go1.23.2
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/client9/misspell v0.3.4
+	github.com/dunglas/httpsfv v1.0.2
 	github.com/elazarl/goproxy v0.0.0-20230808193330-2592e75ae04a
 	github.com/getsentry/sentry-go v0.29.1
 	github.com/go-chi/chi/v5 v5.1.0
