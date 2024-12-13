@@ -36,6 +36,12 @@ func (t *http3tunneler) TunnelTCP(
 	if err != nil {
 		return err
 	}
+	defer func() {
+		err := transport.Close()
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("error closing http3 transport")
+		}
+	}()
 
 	pr, pw := io.Pipe()
 
@@ -110,7 +116,12 @@ func (t *http3tunneler) TunnelUDP(
 	if err != nil {
 		return err
 	}
-	defer func() { _ = transport.Close() }()
+	defer func() {
+		err := transport.Close()
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("error closing http3 transport")
+		}
+	}()
 
 	conn, err := quic.DialAddr(ctx, t.cfg.proxyHost, transport.TLSClientConfig, transport.QUICConfig)
 	if err != nil {
