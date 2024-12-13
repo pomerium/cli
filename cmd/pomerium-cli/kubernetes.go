@@ -69,6 +69,7 @@ var kubernetesExecCredentialCmd = &cobra.Command{
 		}
 
 		ac := authclient.New(
+			authclient.WithUseDeviceCodeFlow(browserOptions.useDeviceCodeFlow),
 			authclient.WithBrowserCommand(browserOptions.command),
 			authclient.WithServiceAccount(serviceAccountOptions.serviceAccount),
 			authclient.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
