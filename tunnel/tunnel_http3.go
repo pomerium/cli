@@ -288,7 +288,8 @@ func (t *http3tunneler) readRemote(ctx context.Context, dst UDPPacketWriter, src
 }
 
 func (t *http3tunneler) skipCapsules(ctx context.Context, str http3.Stream) error {
-	context.AfterFunc(ctx, func() { str.CancelRead(0) })
+	stop := context.AfterFunc(ctx, func() { str.CancelRead(0) })
+	defer stop()
 	r := quicvarint.NewReader(str)
 	for {
 		_, r, err := http3.ParseCapsule(r)
