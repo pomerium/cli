@@ -105,7 +105,7 @@ func (t *http3tunneler) TunnelTCP(
 func (t *http3tunneler) TunnelUDP(
 	ctx context.Context,
 	eventSink EventSink,
-	local UDPPacketReaderWriter,
+	local UDPDatagramReaderWriter,
 	rawJWT string,
 ) error {
 	ctx = log.Ctx(ctx).With().Str("component", "http3tunneler").Logger().WithContext(ctx)
@@ -243,26 +243,22 @@ func (t *http3tunneler) getTransport(enableDatagrams bool) (*http3.Transport, er
 	return transport, nil
 }
 
-func (t *http3tunneler) readLocal(ctx context.Context, dst http3.Stream, src UDPPacketReader) error {
+func (t *http3tunneler) readLocal(ctx context.Context, dst http3.Stream, src UDPDatagramReader) error {
 	var logMaxDatagramPayloadSizeOnce sync.Once
 	for {
-		packet, err := src.ReadPacket(ctx)
+		datagram, err := src.ReadDatagram(ctx)
 		if err != nil {
 			return fmt.Errorf("http/3: error reading packet from local udp connection: %w", err)
 		}
 
-		data := make([]byte, 0, len(contextIDZero)+len(packet.Payload))
-		data = append(data, contextIDZero...)
-		data = append(data, packet.Payload...)
-
-		err = dst.SendDatagram(data)
+		err = dst.SendDatagram(datagram.data)
 
 		var tooLargeError *quic.DatagramTooLargeError
 		if errors.As(err, &tooLargeError) {
 			logMaxDatagramPayloadSizeOnce.Do(func() {
 				log.Ctx(ctx).Error().
 					Int64("max-datagram-payload-size", tooLargeError.MaxDatagramPayloadSize).
-					Int("datagram-size", len(data)).
+					Int("datagram-size", len(datagram.data)).
 					Msg("datagram exceeded max datagram payload size and was dropped")
 			})
 			// ignore
@@ -272,26 +268,20 @@ func (t *http3tunneler) readLocal(ctx context.Context, dst http3.Stream, src UDP
 	}
 }
 
-func (t *http3tunneler) readRemote(ctx context.Context, dst UDPPacketWriter, src http3.Stream) error {
+func (t *http3tunneler) readRemote(ctx context.Context, dst UDPDatagramWriter, src http3.Stream) error {
 	for {
 		data, err := src.ReceiveDatagram(ctx)
 		if err != nil {
 			return fmt.Errorf("http/3: error reading datagram: %w", err)
 		}
 
-		contextID, n, err := quicvarint.Parse(data)
-		if err != nil {
-			return fmt.Errorf("http/3: error parsing datagram context id: %w", err)
-		}
-
-		if contextID != 0 {
+		datagram := UDPDatagram{data: data}
+		if datagram.ContextID() != 0 {
 			// we only support context-id = 0
 			continue
 		}
 
-		err = dst.WritePacket(ctx, UDPPacket{
-			Payload: data[n:],
-		})
+		err = dst.WriteDatagram(ctx, datagram)
 		if err != nil {
 			return fmt.Errorf("http/3: error writing packet to udp connection: %w", err)
 		}
