@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"net/netip"
-	"strings"
 	"time"
 
 	"github.com/quic-go/quic-go/http3"
@@ -48,53 +46,13 @@ type UDPDatagramReaderWriter interface {
 }
 
 type UDPTunneler interface {
+	Name() string
 	TunnelUDP(
 		ctx context.Context,
 		eventSink EventSink,
 		local UDPDatagramReaderWriter,
 		rawJWT string,
 	) error
-}
-
-// PickUDPTunneler picks a UDP tunneler for the given proxy.
-func (tun *Tunnel) pickUDPTunneler(ctx context.Context) UDPTunneler {
-	ctx = log.Ctx(ctx).With().Str("component", "pick-UDP-tunneler").Logger().WithContext(ctx)
-
-	fallback := &http1tunneler{cfg: tun.cfg}
-
-	// if we're not using TLS, only HTTP1 is supported
-	if tun.cfg.tlsConfig == nil {
-		log.Ctx(ctx).Info().Msg("tls not enabled, using http1")
-		return fallback
-	}
-
-	client := &http.Client{
-		Transport: &http.Transport{
-			ForceAttemptHTTP2: true,
-			TLSClientConfig:   tun.cfg.tlsConfig,
-		},
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://"+tun.cfg.proxyHost, nil)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to create probe request, falling back to http1")
-		return fallback
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Msg("failed to make probe request, falling back to http1")
-		return fallback
-	}
-	res.Body.Close()
-
-	if v := res.Header.Get("Alt-Svc"); strings.Contains(v, "h3") {
-		log.Ctx(ctx).Info().Msg("using http3")
-		return &http3tunneler{cfg: tun.cfg}
-	}
-
-	log.Ctx(ctx).Info().Msg("using http1")
-	return fallback
 }
 
 func (tun *Tunnel) RunUDPListener(ctx context.Context, listenerAddress string) error {
@@ -118,9 +76,9 @@ func (tun *Tunnel) RunUDPListener(ctx context.Context, listenerAddress string) e
 }
 
 func (tun *Tunnel) RunUDPSessionManager(ctx context.Context, conn *net.UDPConn) error {
+	tunneler := newFallbackUDPTunneler(&http3tunneler{cfg: tun.cfg}, &http1tunneler{cfg: tun.cfg})
+	eventSink := LogEvents()
 	return newUDPSessionManager(conn, func(ctx context.Context, urw UDPDatagramReaderWriter) error {
-		tunneler := tun.pickUDPTunneler(ctx)
-		eventSink := LogEvents()
 		return tun.runWithJWT(ctx, eventSink, func(ctx context.Context, rawJWT string) error {
 			// always disconnect after 10 minutes
 			ctx, clearTimeout := context.WithTimeout(ctx, 10*time.Minute)

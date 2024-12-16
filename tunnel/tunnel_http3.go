@@ -22,6 +22,8 @@ type http3tunneler struct {
 	cfg *config
 }
 
+func (*http3tunneler) Name() string { return "http3" }
+
 func (t *http3tunneler) TunnelTCP(
 	ctx context.Context,
 	eventSink EventSink,
@@ -125,7 +127,7 @@ func (t *http3tunneler) TunnelUDP(
 
 	conn, err := quic.DialAddr(ctx, t.cfg.proxyHost, transport.TLSClientConfig, transport.QUICConfig)
 	if err != nil {
-		return fmt.Errorf("http/3: failed to connect to server: %w", err)
+		return fmt.Errorf("http/3: %w: failed to connect to server: %w", errUnsupported, err)
 	}
 
 	cc := transport.NewClientConn(conn)

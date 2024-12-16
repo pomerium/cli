@@ -20,6 +20,8 @@ type http1tunneler struct {
 	cfg *config
 }
 
+func (*http1tunneler) Name() string { return "http1" }
+
 func (t *http1tunneler) TunnelTCP(
 	ctx context.Context,
 	eventSink EventSink,
