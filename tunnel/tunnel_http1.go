@@ -20,6 +20,8 @@ type http1tunneler struct {
 	cfg *config
 }
 
+func (*http1tunneler) Name() string { return "http1" }
+
 func (t *http1tunneler) TunnelTCP(
 	ctx context.Context,
 	eventSink EventSink,
@@ -116,7 +118,7 @@ func (t *http1tunneler) TunnelTCP(
 func (t *http1tunneler) TunnelUDP(
 	ctx context.Context,
 	eventSink EventSink,
-	local UDPPacketReaderWriter,
+	local UDPDatagramReaderWriter,
 	rawJWT string,
 ) error {
 	eventSink.OnConnecting(ctx)
@@ -195,10 +197,10 @@ func (t *http1tunneler) TunnelUDP(
 
 	eg, ectx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		return streamFromCapsuleDatagramsToUDPPacketWriter(ectx, local, res.Body)
+		return streamFromCapsuleDatagramsToUDPDatagramWriter(ectx, local, res.Body)
 	})
 	eg.Go(func() error {
-		return streamFromUDPPacketReaderToCapsuleDatagrams(ectx, remote, local)
+		return streamFromUDPDatagramReaderToCapsuleDatagrams(ectx, remote, local)
 	})
 	err = eg.Wait()
 
