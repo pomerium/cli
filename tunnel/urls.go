@@ -18,13 +18,13 @@ func ParseURLs(destination string, pomeriumURL string) (destinationAddr string, 
 		if len(paths) == 0 {
 			destinationAddr = destinationURL.Host
 			proxyURL = &url.URL{
-				Scheme: strings.TrimPrefix(destinationURL.Scheme, "tcp+"),
+				Scheme: strings.TrimPrefix(strings.TrimPrefix(destinationURL.Scheme, "tcp+"), "udp+"),
 				Host:   destinationURL.Hostname(),
 			}
 		} else {
 			destinationAddr = paths[0]
 			proxyURL = &url.URL{
-				Scheme: strings.TrimPrefix(destinationURL.Scheme, "tcp+"),
+				Scheme: strings.TrimPrefix(strings.TrimPrefix(destinationURL.Scheme, "tcp+"), "udp+"),
 				Host:   destinationURL.Host,
 			}
 		}

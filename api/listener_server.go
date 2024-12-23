@@ -11,6 +11,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/rs/zerolog/log"
+
 	pb "github.com/pomerium/cli/proto"
 )
 
@@ -70,6 +72,14 @@ func (s *server) connectTunnelLocked(id string) (net.Addr, error) {
 		return nil, err
 	}
 
+	if rec.GetConn().GetProtocol() == pb.Protocol_UDP {
+		return s.connectUDPTunnelLocked(id, tun, listenAddr)
+	}
+
+	return s.connectTCPTunnelLocked(id, tun, listenAddr)
+}
+
+func (s *server) connectTCPTunnelLocked(id string, tun Tunnel, listenAddr string) (net.Addr, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	lc := new(net.ListenConfig)
 	li, err := lc.Listen(ctx, "tcp", listenAddr)
@@ -96,6 +106,47 @@ func (s *server) connectTunnelLocked(id string) (net.Addr, error) {
 	go onContextCancel(ctx, li)
 
 	return li.Addr(), nil
+}
+
+func (s *server) connectUDPTunnelLocked(id string, tun Tunnel, listenAddr string) (net.Addr, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	addr, err := net.ResolveUDPAddr("udp", listenAddr)
+	if err != nil {
+		_ = s.EventBroadcaster.Update(ctx, &pb.ConnectionStatusUpdate{
+			Id:        id,
+			LastError: proto.String(fmt.Errorf("ResolveUDPAddr: %w", err).Error()),
+			Ts:        timestamppb.Now(),
+		})
+		cancel()
+		return nil, err
+	}
+
+	conn, err := net.ListenUDP("udp", addr)
+	if err != nil {
+		_ = s.EventBroadcaster.Update(ctx, &pb.ConnectionStatusUpdate{
+			Id:        id,
+			LastError: proto.String(fmt.Errorf("ListenUDP: %w", err).Error()),
+			Ts:        timestamppb.Now(),
+		})
+		cancel()
+		return nil, err
+	}
+	context.AfterFunc(ctx, func() { _ = conn.Close() })
+
+	go func() {
+		defer cancel()
+		evt := (&tunnelEvents{EventBroadcaster: s.EventBroadcaster, id: id}).withPeer(conn)
+		defer evt.onTunnelClosed()
+		evt.onListening(ctx)
+
+		err := tun.RunUDPSessionManager(ctx, conn, evt)
+		if err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("error serving local connection")
+		}
+	}()
+
+	return addr, nil
 }
 
 func onContextCancel(ctx context.Context, cl io.Closer) {

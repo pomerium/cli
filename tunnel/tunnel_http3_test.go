@@ -212,7 +212,7 @@ func TestUDPTunnelViaHTTP3(t *testing.T) {
 	require.NoError(t, err)
 
 	tunErrC := make(chan error, 1)
-	go func() { tunErrC <- tun.RunUDPSessionManager(ctx, tunnelConn) }()
+	go func() { tunErrC <- tun.RunUDPSessionManager(ctx, tunnelConn, LogEvents()) }()
 
 	// create the local connection
 

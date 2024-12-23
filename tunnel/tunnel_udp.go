@@ -70,14 +70,13 @@ func (tun *Tunnel) RunUDPListener(ctx context.Context, listenerAddress string) e
 	}
 	defer conn.Close()
 
-	err = tun.RunUDPSessionManager(ctx, conn)
+	err = tun.RunUDPSessionManager(ctx, conn, LogEvents())
 	log.Ctx(ctx).Error().Err(err).Msg("stopped udp listener")
 	return err
 }
 
-func (tun *Tunnel) RunUDPSessionManager(ctx context.Context, conn *net.UDPConn) error {
+func (tun *Tunnel) RunUDPSessionManager(ctx context.Context, conn *net.UDPConn, eventSink EventSink) error {
 	tunneler := newFallbackUDPTunneler(&http3tunneler{cfg: tun.cfg}, &http1tunneler{cfg: tun.cfg})
-	eventSink := LogEvents()
 	return newUDPSessionManager(conn, func(ctx context.Context, urw UDPDatagramReaderWriter) error {
 		return tun.runWithJWT(ctx, eventSink, func(ctx context.Context, rawJWT string) error {
 			// always disconnect after 10 minutes
