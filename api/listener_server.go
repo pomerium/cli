@@ -136,7 +136,7 @@ func (s *server) connectUDPTunnelLocked(id string, tun Tunnel, listenAddr string
 
 	go func() {
 		defer cancel()
-		evt := (&tunnelEvents{EventBroadcaster: s.EventBroadcaster, id: id}).withPeer(conn)
+		evt := &tunnelEvents{EventBroadcaster: s.EventBroadcaster, id: id}
 		defer evt.onTunnelClosed()
 		evt.onListening(ctx)
 

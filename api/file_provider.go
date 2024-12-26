@@ -24,5 +24,5 @@ func (f FileConfigProvider) Load() ([]byte, error) {
 
 // Save stores data to the file
 func (f FileConfigProvider) Save(data []byte) error {
-	return os.WriteFile(string(f), data, 0600)
+	return os.WriteFile(string(f), data, 0o600)
 }
