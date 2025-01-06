@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"sync"
 
 	"github.com/golang/groupcache/lru"
@@ -38,6 +39,7 @@ type ListenerStatus interface {
 // Tunnel is abstraction over tunnel.Tunnel to allow mocking
 type Tunnel interface {
 	Run(context.Context, io.ReadWriter, tunnel.EventSink) error
+	RunUDPSessionManager(ctx context.Context, conn *net.UDPConn, eventSink tunnel.EventSink) error
 }
 
 // Server implements both config and listener interfaces
