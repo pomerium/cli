@@ -114,7 +114,7 @@ func (tun *Tunnel) Run(ctx context.Context, local io.ReadWriter, eventSink Event
 }
 
 func (tun *Tunnel) runWithJWT(ctx context.Context, eventSink EventSink, handler func(ctx context.Context, rawJWT string) error) error {
-	rawJWT, err := tun.cfg.jwtCache.LoadJWT(tun.jwtCacheKey())
+	rawJWT, err := tun.cfg.jwtCache.LoadJWT(jwt.GetCacheKey(tun.cfg.proxyHost, tun.cfg.tlsConfig))
 	switch {
 	// if there is no error, or it is one of the pre-defined cliutil errors,
 	// then ignore and use an empty JWT
@@ -143,7 +143,7 @@ func (tun *Tunnel) runWithJWT(ctx context.Context, eventSink EventSink, handler 
 			return fmt.Errorf("tunnel: failed to get authentication JWT: %w", err)
 		}
 
-		err = tun.cfg.jwtCache.StoreJWT(tun.jwtCacheKey(), rawJWT)
+		err = tun.cfg.jwtCache.StoreJWT(jwt.GetCacheKey(tun.cfg.proxyHost, tun.cfg.tlsConfig), rawJWT)
 		if err != nil {
 			return fmt.Errorf("tunnel: failed to store JWT: %w", err)
 		}
@@ -155,15 +155,11 @@ func (tun *Tunnel) runWithJWT(ctx context.Context, eventSink EventSink, handler 
 		// don't delete the JWT if we get a service unavailable or the user is unauthorized
 		return err
 	} else if err != nil {
-		_ = tun.cfg.jwtCache.DeleteJWT(tun.jwtCacheKey())
+		_ = tun.cfg.jwtCache.DeleteJWT(jwt.GetCacheKey(tun.cfg.proxyHost, tun.cfg.tlsConfig))
 		return err
 	}
 
 	return nil
-}
-
-func (tun *Tunnel) jwtCacheKey() string {
-	return fmt.Sprintf("%s|%v", tun.cfg.proxyHost, tun.cfg.tlsConfig != nil)
 }
 
 func httpStatusCodeToError(statusCode int) error {

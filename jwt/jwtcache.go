@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/go-jose/go-jose/v3"
 	"github.com/martinlindhe/base36"
+	"github.com/rs/zerolog/log"
 
 	"github.com/pomerium/cli/internal/cache"
 	"github.com/pomerium/pomerium/pkg/cryptutil"
@@ -28,6 +30,30 @@ type JWTCache interface {
 	DeleteJWT(key string) error
 	LoadJWT(key string) (rawJWT string, err error)
 	StoreJWT(key string, rawJWT string) error
+}
+
+var (
+	globalJWTCacheMu sync.Mutex
+	globalJWTCache   JWTCache
+)
+
+// NewJWTCache creates a new JWT Cache. A local cache is used unless there is an error, otherwise an in-memory cache is used.
+func NewJWTCache() JWTCache {
+	globalJWTCacheMu.Lock()
+	defer globalJWTCacheMu.Unlock()
+
+	if globalJWTCache != nil {
+		return globalJWTCache
+	}
+
+	var err error
+	globalJWTCache, err = NewLocalJWTCache()
+	if err == nil {
+		return globalJWTCache
+	}
+	globalJWTCache = NewMemoryJWTCache()
+	log.Error().Err(err).Msg("error creating local JWT cache, using in-memory JWT cache")
+	return globalJWTCache
 }
 
 // A LocalJWTCache stores files in the user's cache directory.
@@ -159,4 +185,8 @@ func checkExpiry(rawJWT string) error {
 	}
 
 	return nil
+}
+
+func GetCacheKey(host string, tlsConfig *tls.Config) string {
+	return fmt.Sprintf("%s|%v", host, tlsConfig != nil)
 }
