@@ -19,6 +19,8 @@ service Config {
   rpc Export(ExportRequest) returns (ConfigData);
   // Import imports previously serialized records
   rpc Import(ImportRequest) returns (ImportResponse);
+  // FetchRoutes fetches all the routes a user has access to
+  rpc FetchRoutes(FetchRoutesRequest) returns (FetchRoutesResponse);
 }
 
 // Record represents a single tunnel record in the configuration
@@ -75,6 +77,10 @@ message ImportRequest {
 }
 
 message ImportResponse {}
+
+message FetchRoutesRequest { string server_url = 1; }
+
+message FetchRoutesResponse { repeated PortalRoute routes = 1; }
 
 // Listener service controls listeners
 service Listener {
@@ -238,4 +244,14 @@ message Connection {
   reserved 8; // unreleased client_cert_issuer_cn search criterion
   // indicates to search the system trust store for a client certificate
   optional ClientCertFromStore client_cert_from_store = 9;
+}
+
+message PortalRoute {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string from = 4;
+  string description = 5;
+  optional string connect_command = 6;
+  string logo_url = 7;
 }

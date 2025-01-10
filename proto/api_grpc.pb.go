@@ -19,12 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Config_List_FullMethodName    = "/pomerium.cli.Config/List"
-	Config_Delete_FullMethodName  = "/pomerium.cli.Config/Delete"
-	Config_Upsert_FullMethodName  = "/pomerium.cli.Config/Upsert"
-	Config_GetTags_FullMethodName = "/pomerium.cli.Config/GetTags"
-	Config_Export_FullMethodName  = "/pomerium.cli.Config/Export"
-	Config_Import_FullMethodName  = "/pomerium.cli.Config/Import"
+	Config_List_FullMethodName        = "/pomerium.cli.Config/List"
+	Config_Delete_FullMethodName      = "/pomerium.cli.Config/Delete"
+	Config_Upsert_FullMethodName      = "/pomerium.cli.Config/Upsert"
+	Config_GetTags_FullMethodName     = "/pomerium.cli.Config/GetTags"
+	Config_Export_FullMethodName      = "/pomerium.cli.Config/Export"
+	Config_Import_FullMethodName      = "/pomerium.cli.Config/Import"
+	Config_FetchRoutes_FullMethodName = "/pomerium.cli.Config/FetchRoutes"
 )
 
 // ConfigClient is the client API for Config service.
@@ -46,6 +47,8 @@ type ConfigClient interface {
 	Export(ctx context.Context, in *ExportRequest, opts ...grpc.CallOption) (*ConfigData, error)
 	// Import imports previously serialized records
 	Import(ctx context.Context, in *ImportRequest, opts ...grpc.CallOption) (*ImportResponse, error)
+	// FetchRoutes fetches all the routes a user has access to
+	FetchRoutes(ctx context.Context, in *FetchRoutesRequest, opts ...grpc.CallOption) (*FetchRoutesResponse, error)
 }
 
 type configClient struct {
@@ -116,6 +119,16 @@ func (c *configClient) Import(ctx context.Context, in *ImportRequest, opts ...gr
 	return out, nil
 }
 
+func (c *configClient) FetchRoutes(ctx context.Context, in *FetchRoutesRequest, opts ...grpc.CallOption) (*FetchRoutesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FetchRoutesResponse)
+	err := c.cc.Invoke(ctx, Config_FetchRoutes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ConfigServer is the server API for Config service.
 // All implementations should embed UnimplementedConfigServer
 // for forward compatibility.
@@ -135,6 +148,8 @@ type ConfigServer interface {
 	Export(context.Context, *ExportRequest) (*ConfigData, error)
 	// Import imports previously serialized records
 	Import(context.Context, *ImportRequest) (*ImportResponse, error)
+	// FetchRoutes fetches all the routes a user has access to
+	FetchRoutes(context.Context, *FetchRoutesRequest) (*FetchRoutesResponse, error)
 }
 
 // UnimplementedConfigServer should be embedded to have
@@ -161,6 +176,9 @@ func (UnimplementedConfigServer) Export(context.Context, *ExportRequest) (*Confi
 }
 func (UnimplementedConfigServer) Import(context.Context, *ImportRequest) (*ImportResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Import not implemented")
+}
+func (UnimplementedConfigServer) FetchRoutes(context.Context, *FetchRoutesRequest) (*FetchRoutesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchRoutes not implemented")
 }
 func (UnimplementedConfigServer) testEmbeddedByValue() {}
 
@@ -290,6 +308,24 @@ func _Config_Import_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Config_FetchRoutes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchRoutesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigServer).FetchRoutes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Config_FetchRoutes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigServer).FetchRoutes(ctx, req.(*FetchRoutesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Config_ServiceDesc is the grpc.ServiceDesc for Config service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -320,6 +356,10 @@ var Config_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Import",
 			Handler:    _Config_Import_Handler,
+		},
+		{
+			MethodName: "FetchRoutes",
+			Handler:    _Config_FetchRoutes_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
