@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"net/url"
 	"sync"
 	"time"
@@ -21,6 +22,7 @@ import (
 var (
 	errUnavailable     = errors.New("unavailable")
 	errUnauthenticated = errors.New("unauthenticated")
+	errUnauthorized    = errors.New("unauthorized")
 	errUnsupported     = errors.New("unsupported")
 )
 
@@ -149,8 +151,8 @@ func (tun *Tunnel) runWithJWT(ctx context.Context, eventSink EventSink, handler 
 		err = handler(ctx, rawJWT)
 	}
 
-	if errors.Is(err, errUnavailable) {
-		// don't delete the JWT if we get a service unavailable
+	if errors.Is(err, errUnavailable) || errors.Is(err, errUnauthorized) {
+		// don't delete the JWT if we get a service unavailable or the user is unauthorized
 		return err
 	} else if err != nil {
 		_ = tun.cfg.jwtCache.DeleteJWT(tun.jwtCacheKey())
@@ -162,4 +164,22 @@ func (tun *Tunnel) runWithJWT(ctx context.Context, eventSink EventSink, handler 
 
 func (tun *Tunnel) jwtCacheKey() string {
 	return fmt.Sprintf("%s|%v", tun.cfg.proxyHost, tun.cfg.tlsConfig != nil)
+}
+
+func httpStatusCodeToError(statusCode int) error {
+	switch statusCode {
+	case http.StatusOK:
+		return nil
+	case http.StatusServiceUnavailable:
+		return errUnavailable
+	case http.StatusMovedPermanently,
+		http.StatusFound,
+		http.StatusTemporaryRedirect,
+		http.StatusPermanentRedirect:
+		return errUnauthenticated
+	case http.StatusForbidden:
+		return errUnauthorized
+	}
+
+	return fmt.Errorf("invalid http response code: %d", statusCode)
 }

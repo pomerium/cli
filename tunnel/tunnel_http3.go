@@ -68,17 +68,9 @@ func (t *http3tunneler) TunnelTCP(
 	}
 	defer res.Body.Close()
 
-	switch res.StatusCode {
-	case http.StatusOK:
-	case http.StatusServiceUnavailable:
-		return errUnavailable
-	case http.StatusMovedPermanently,
-		http.StatusFound,
-		http.StatusTemporaryRedirect,
-		http.StatusPermanentRedirect:
-		return errUnauthenticated
-	default:
-		return fmt.Errorf("http/3: invalid response code: %d", res.StatusCode)
+	err = httpStatusCodeToError(res.StatusCode)
+	if err != nil {
+		return err
 	}
 
 	eventSink.OnConnected(ctx)
@@ -167,17 +159,9 @@ func (t *http3tunneler) TunnelUDP(
 	}
 	defer res.Body.Close()
 
-	switch res.StatusCode {
-	case http.StatusOK:
-	case http.StatusServiceUnavailable:
-		return errUnavailable
-	case http.StatusMovedPermanently,
-		http.StatusFound,
-		http.StatusTemporaryRedirect,
-		http.StatusPermanentRedirect:
-		return errUnauthenticated
-	default:
-		return fmt.Errorf("http/3: invalid http response code: %d", res.StatusCode)
+	err = httpStatusCodeToError(res.StatusCode)
+	if err != nil {
+		return err
 	}
 
 	eventSink.OnConnected(ctx)
