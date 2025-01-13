@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLocalJWTCache(t *testing.T) {
-	c := &LocalJWTCache{
+func TestLocalCache(t *testing.T) {
+	c := &LocalCache{
 		dir: filepath.Join(os.TempDir(), uuid.New().String()),
 	}
 
