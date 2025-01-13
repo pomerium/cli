@@ -3,13 +3,11 @@ package tunnel
 import (
 	"crypto/tls"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/pomerium/cli/jwt"
 )
 
 type config struct {
-	jwtCache           jwt.JWTCache
+	jwtCache           jwt.Cache
 	dstHost            string
 	proxyHost          string
 	serviceAccount     string
@@ -20,12 +18,7 @@ type config struct {
 
 func getConfig(options ...Option) *config {
 	cfg := new(config)
-	if jwtCache, err := jwt.NewLocalJWTCache(); err == nil {
-		WithJWTCache(jwtCache)(cfg)
-	} else {
-		log.Error().Err(err).Msg("error creating local JWT cache, using in-memory JWT cache")
-		WithJWTCache(jwt.NewMemoryJWTCache())(cfg)
-	}
+	WithJWTCache(jwt.GetCache())(cfg)
 	for _, o := range options {
 		o(cfg)
 	}
@@ -50,7 +43,7 @@ func WithDestinationHost(dstHost string) Option {
 }
 
 // WithJWTCache returns an option to configure the jwt cache.
-func WithJWTCache(jwtCache jwt.JWTCache) Option {
+func WithJWTCache(jwtCache jwt.Cache) Option {
 	return func(cfg *config) {
 		cfg.jwtCache = jwtCache
 	}
