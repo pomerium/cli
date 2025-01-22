@@ -40,6 +40,7 @@ var tcpCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		cacheLastURL(proxyURL.String())
 
 		var tlsConfig *tls.Config
 		if proxyURL.Scheme == "https" {

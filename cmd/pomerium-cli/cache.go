@@ -147,3 +147,25 @@ func saveCachedCredential(serverURL string, creds *ExecCredential) error {
 
 	return nil
 }
+
+func loadLastURL() string {
+	fn, err := cache.LastURLPath()
+	if err != nil {
+		return ""
+	}
+
+	bs, err := os.ReadFile(fn)
+	if err != nil {
+		return ""
+	}
+	return string(bs)
+}
+
+func cacheLastURL(rawServerURL string) {
+	fn, err := cache.LastURLPath()
+	if err != nil {
+		return
+	}
+
+	_ = os.WriteFile(fn, []byte(rawServerURL), 0o644)
+}

@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
@@ -16,7 +15,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/pomerium/cli/certstore"
 	pb "github.com/pomerium/cli/proto"
 	"github.com/pomerium/cli/tunnel"
 )
@@ -82,48 +80,6 @@ func getProxy(conn *pb.Connection) (*url.URL, error) {
 	}
 
 	return u, nil
-}
-
-func getTLSConfig(conn *pb.Connection) (*tls.Config, error) {
-	cfg := &tls.Config{
-		//nolint: gosec
-		InsecureSkipVerify: conn.GetDisableTlsVerification(),
-	}
-
-	if conn.ClientCert != nil {
-		if len(conn.ClientCert.Cert) == 0 {
-			return nil, fmt.Errorf("client cert: certificate is missing")
-		}
-		if len(conn.ClientCert.Key) == 0 {
-			return nil, fmt.Errorf("client cert: key is missing")
-		}
-		cert, err := tls.X509KeyPair(conn.ClientCert.Cert, conn.ClientCert.Key)
-		if err != nil {
-			return nil, fmt.Errorf("client cert: %w", err)
-		}
-		cfg.Certificates = append(cfg.Certificates, cert)
-	}
-	if c := conn.ClientCertFromStore; c != nil {
-		f, err := certstore.GetClientCertificateFunc(c.GetIssuerFilter(), c.GetSubjectFilter())
-		if err != nil {
-			return nil, fmt.Errorf("client cert from store: %w", err)
-		}
-		cfg.GetClientCertificate = f
-	}
-
-	if len(conn.GetCaCert()) == 0 {
-		return cfg, nil
-	}
-
-	rootCA, err := x509.SystemCertPool()
-	if err != nil {
-		return nil, fmt.Errorf("get system cert pool: %w", err)
-	}
-	if ok := rootCA.AppendCertsFromPEM(conn.GetCaCert()); !ok {
-		return nil, fmt.Errorf("failed to append provided certificate")
-	}
-	cfg.RootCAs = rootCA
-	return cfg, nil
 }
 
 func tunnelAcceptLoop(ctx context.Context, id string, li net.Listener, tun Tunnel, b EventBroadcaster) {

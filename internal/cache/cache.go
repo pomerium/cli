@@ -41,3 +41,12 @@ func JWTsPath() (string, error) {
 	}
 	return filepath.Join(root, "jwts"), nil
 }
+
+// LastURLPath returns the last URL.
+func LastURLPath() (string, error) {
+	root, err := RootPath()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, "last-url"), nil
+}

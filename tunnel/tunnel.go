@@ -163,7 +163,7 @@ func (tun *Tunnel) runWithJWT(ctx context.Context, eventSink EventSink, handler 
 }
 
 func (tun *Tunnel) jwtCacheKey() string {
-	return fmt.Sprintf("%s|%v", tun.cfg.proxyHost, tun.cfg.tlsConfig != nil)
+	return jwt.CacheKeyForHost(tun.cfg.proxyHost, tun.cfg.tlsConfig)
 }
 
 func httpStatusCodeToError(statusCode int) error {

@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"github.com/go-jose/go-jose/v3"
 	"github.com/martinlindhe/base36"
 	"github.com/rs/zerolog/log"
+	"github.com/volatiletech/null/v9"
 
 	"github.com/pomerium/cli/internal/cache"
 	"github.com/pomerium/pomerium/pkg/cryptutil"
@@ -165,17 +167,24 @@ func checkExpiry(rawJWT string) error {
 	}
 
 	var claims struct {
-		Expiry int64 `json:"exp"`
+		Expiry null.Int64 `json:"exp"`
 	}
 	err = json.Unmarshal(tok.UnsafePayloadWithoutVerification(), &claims)
 	if err != nil {
 		return ErrInvalid
 	}
 
-	expiresAt := time.Unix(claims.Expiry, 0)
-	if expiresAt.Before(time.Now()) {
-		return ErrExpired
+	if claims.Expiry.Valid {
+		expiresAt := time.Unix(claims.Expiry.Int64, 0)
+		if expiresAt.Before(time.Now()) {
+			return ErrExpired
+		}
 	}
 
 	return nil
+}
+
+// CacheKeyForHost returns the cache key for the given host and tls config.
+func CacheKeyForHost(host string, tlsConfig *tls.Config) string {
+	return fmt.Sprintf("%s|%v", host, tlsConfig != nil)
 }
