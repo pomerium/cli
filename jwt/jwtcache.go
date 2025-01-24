@@ -99,8 +99,13 @@ func (cache *LocalCache) LoadJWT(key string) (rawJWT string, err error) {
 
 // StoreJWT stores a raw JWT in the local cache.
 func (cache *LocalCache) StoreJWT(key string, rawJWT string) error {
+	err := os.MkdirAll(cache.dir, 0o755)
+	if err != nil {
+		return err
+	}
+
 	path := filepath.Join(cache.dir, cache.fileName(key))
-	err := os.WriteFile(path, []byte(rawJWT), 0o600)
+	err = os.WriteFile(path, []byte(rawJWT), 0o600)
 	if err != nil {
 		return err
 	}
