@@ -4,26 +4,20 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/go-jose/go-jose/v3"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLocalCache(t *testing.T) {
-	c := &LocalCache{
-		dir: filepath.Join(os.TempDir(), uuid.New().String()),
-	}
+	root := t.TempDir()
 
-	err := os.MkdirAll(c.dir, 0o755)
-	if !assert.NoError(t, err) {
-		return
+	c := &LocalCache{
+		dir: filepath.Join(root, "jwts"),
 	}
-	defer func() { _ = os.RemoveAll(c.dir) }()
 
 	t.Run("NotFound", func(t *testing.T) {
 		_, err := c.LoadJWT("NOTFOUND")

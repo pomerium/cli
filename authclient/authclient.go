@@ -10,9 +10,10 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"golang.org/x/sync/errgroup"
+
+	"github.com/pomerium/cli/internal/httputil"
 )
 
 // An AuthClient retrieves an authentication JWT via the Pomerium login API.
@@ -40,7 +41,7 @@ func (client *AuthClient) CheckBearerToken(ctx context.Context, serverURL *url.U
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+bearerToken)
 
-	_, err = client.fetch(ctx, req)
+	_, err = httputil.Fetch(ctx, client.cfg.tlsConfig, req)
 	return err
 }
 
@@ -134,7 +135,7 @@ func (client *AuthClient) runOpenBrowser(ctx context.Context, li net.Listener, s
 		return err
 	}
 
-	bs, err := client.fetch(ctx, req)
+	bs, err := httputil.Fetch(ctx, client.cfg.tlsConfig, req)
 	if err != nil {
 		return err
 	}
@@ -147,31 +148,6 @@ func (client *AuthClient) runOpenBrowser(ctx context.Context, li net.Listener, s
 
 	_, _ = fmt.Fprintf(os.Stderr, "Your browser has been opened to visit:\n\n%s\n\n", string(bs))
 	return nil
-}
-
-func (client *AuthClient) fetch(ctx context.Context, req *http.Request) ([]byte, error) {
-	ctx, clearTimeout := context.WithTimeout(ctx, 10*time.Second)
-	defer clearTimeout()
-	req = req.WithContext(ctx)
-
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = client.cfg.tlsConfig
-
-	hc := &http.Client{
-		Transport: transport,
-	}
-
-	res, err := hc.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get url: %w", err)
-	}
-	defer func() { _ = res.Body.Close() }()
-
-	if res.StatusCode/100 != 2 {
-		return nil, fmt.Errorf("unexpected status code: %s", res.Status)
-	}
-
-	return io.ReadAll(res.Body)
 }
 
 func getBrowserURL(serverURL *url.URL) *url.URL {

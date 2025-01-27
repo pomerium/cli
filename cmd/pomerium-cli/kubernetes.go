@@ -49,6 +49,8 @@ var kubernetesExecCredentialCmd = &cobra.Command{
 			return fmt.Errorf("server url is required")
 		}
 
+		cacheLastURL(args[0])
+
 		serverURL, err := url.Parse(args[0])
 		if err != nil {
 			return fmt.Errorf("invalid server url: %v", err)
