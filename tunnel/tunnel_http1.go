@@ -47,7 +47,10 @@ func (t *http1tunneler) TunnelTCP(
 	var remote net.Conn
 	var err error
 	if t.cfg.tlsConfig != nil {
-		remote, err = (&tls.Dialer{Config: t.cfg.tlsConfig}).DialContext(ctx, "tcp", t.cfg.proxyHost)
+		cfg := t.cfg.tlsConfig.Clone()
+		cfg.NextProtos = []string{"http/1.1"}
+
+		remote, err = (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", t.cfg.proxyHost)
 	} else {
 		remote, err = (&net.Dialer{}).DialContext(ctx, "tcp", t.cfg.proxyHost)
 	}
