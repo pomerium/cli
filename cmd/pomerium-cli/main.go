@@ -49,7 +49,15 @@ func signalContext() context.Context {
 }
 
 func setupLogger() {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Logger = log.Level(zerolog.InfoLevel)
+
+	// set the log level
+	if raw := os.Getenv("LOG_LEVEL"); raw != "" {
+		if lvl, err := zerolog.ParseLevel(raw); err == nil {
+			log.Logger = log.Logger.Level(lvl)
+		}
+	}
+
 	zerolog.DefaultContextLogger = &log.Logger
 }
 
