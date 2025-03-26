@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       versionFlags: ${{ steps.flags.outputs.versionFlags }}
-      versionNumber: ${{ steps.flags.outputs.versionNumber }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -27,14 +26,10 @@ jobs:
             "-X github.com/pomerium/cli/version.ProjectURL=https://www.pomerium.io"
           )
           echo "versionFlags=${ldflags[*]}" >> $GITHUB_OUTPUT
-          echo "versionNumber=$(echo ${{ github.event.release.tag_name }} | grep -o -P "\d+(?:\.\d+)*" || echo "1.0.0.0")" >> $GITHUB_OUTPUT
 
   build-macos:
     runs-on: macos-latest
     needs: metadata
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
     outputs:
       checksums: ${{ steps.build.outputs.checksums }}
     steps:
@@ -46,20 +41,18 @@ jobs:
         with:
           go-version: 1.23.x
 
-      - name: Build
+      - name: Build and archive
         id: build
         run: |
-          mkdir -p bin/${{ matrix.arch }}
-          GOARCH=${{ matrix.arch }} CGO_ENABLED=1 go build -o bin/${{ matrix.arch }} \
-            -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
-            ./cmd/pomerium-cli
-
-      - name: Archive
-        id: archive
-        run: |
-          gtar czf pomerium-cli-darwin-${{ matrix.arch }}.tar.gz -C bin/${{ matrix.arch }} pomerium-cli
           echo 'checksums<<EOF' >> $GITHUB_OUTPUT
-          shasum -a 256 pomerium-cli-darwin-${{ matrix.arch }}.tar.gz >> $GITHUB_OUTPUT
+          for arch in amd64 arm64; do
+            mkdir -p bin/$arch
+            GOARCH=$arch CGO_ENABLED=1 go build -o bin/$arch \
+              -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
+              ./cmd/pomerium-cli
+            gtar czf pomerium-cli-darwin-$arch.tar.gz -C bin/$arch pomerium-cli
+            shasum -a 256 pomerium-cli-darwin-$arch.tar.gz >> $GITHUB_OUTPUT
+          done
           echo EOF >> $GITHUB_OUTPUT
 
       - name: Upload to release
@@ -70,9 +63,6 @@ jobs:
   build-windows:
     runs-on: windows-latest
     needs: metadata
-    strategy:
-      matrix:
-        arch: [{go: amd64, wix: x64}, {go: arm64, wix: arm64}]
     outputs:
       checksums: ${{ steps.build.outputs.checksums }}
     steps:
@@ -84,49 +74,28 @@ jobs:
         with:
           go-version: 1.23.x
 
-      - name: Set up .NET 8
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Build
+      - name: Build and archive
         id: build
         shell: bash
         run: |
-          mkdir -p bin/${{ matrix.arch.go }}
-          GOARCH=${{ matrix.arch.go }} CGO_ENABLED=1 go build -o bin/${{ matrix.arch.go }} \
-            -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
-            ./cmd/pomerium-cli
-
-      - name: Archive
-        id: archive
-        shell: bash
-        run: |
-          zipfile="pomerium-cli-windows-${{ matrix.arch.go }}.zip"
-          powershell "Compress-Archive -Path bin\\${{ matrix.arch.go }}\\\* -DestinationPath $zipfile"
-          hash=$(powershell "(Get-FileHash $zipfile -Algorithm SHA256).Hash.ToLower()")
           echo 'checksums<<EOF' >> $GITHUB_OUTPUT
-          echo "$hash $zipfile" >> $GITHUB_OUTPUT
-          echo EOF >> $GITHUB_OUTPUT
-
-      - name: Build MSI
-        id: msi
-        shell: bash
-        run: |
-          dotnet tool install --global wix
-          wix extension add -g WixToolset.UI.wixext
-          msifile="pomerium-cli-windows-${{ matrix.arch.go }}.msi"
-          wix build -arch ${{ matrix.arch.wix }} -ext WixToolset.UI.wixext -b bin\\${{ matrix.arch.go }} -d "version=${{ needs.metadata.outputs.versionNumber }}" -o "$msifile" msi/PomeriumCli.wxs msi/WixUI_InstallDir_NoLicense.wxs
-          hash=$(powershell "(Get-FileHash $msifile -Algorithm SHA256).Hash.ToLower()")
-          echo 'checksums<<EOF' >> $GITHUB_OUTPUT
-          echo "$hash $zipfile" >> $GITHUB_OUTPUT
+          for arch in amd64 arm64; do
+            mkdir -p bin/$arch
+            GOARCH=$arch CGO_ENABLED=1 go build -o bin/$arch \
+              -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
+              ./cmd/pomerium-cli
+            zipfile="pomerium-cli-windows-$arch.zip"
+            powershell "Compress-Archive -Path bin\\$arch\\\* -DestinationPath $zipfile"
+            hash=$(powershell "(Get-FileHash $zipfile -Algorithm SHA256).Hash.ToLower()")
+            echo "$hash  $zipfile" >> $GITHUB_OUTPUT
+          done
           echo EOF >> $GITHUB_OUTPUT
 
       - name: Upload to release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" pomerium-cli-windows-*.zip pomerium-cli-windows-*.msi
+        run: gh release upload "${{ github.event.release.tag_name }}" pomerium-cli-windows-*.zip
 
   goreleaser:
     permissions:
