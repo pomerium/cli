@@ -2,11 +2,8 @@ module github.com/pomerium/cli
 
 go 1.23.6
 
-toolchain go1.23.7
-
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/client9/misspell v0.3.4
 	github.com/dunglas/httpsfv v1.0.2
 	github.com/elazarl/goproxy v1.7.2
 	github.com/getsentry/sentry-go v0.31.1
@@ -28,7 +25,6 @@ require (
 	golang.org/x/sync v0.11.0
 	golang.org/x/sys v0.30.0
 	google.golang.org/grpc v1.70.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/protobuf v1.36.5
 )
 
