@@ -27,3 +27,5 @@ updates:
       go:
         patterns:
           - "*"
+        exclude-patterns:
+          - "github.com/pomerium/pomerium"
