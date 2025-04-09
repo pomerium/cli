@@ -138,7 +138,6 @@ jobs:
           args: release
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          APPARITOR_GITHUB_TOKEN: ${{ secrets.APPARITOR_GITHUB_TOKEN }}
           VERSION_FLAGS: ${{ needs.metadata.outputs.versionFlags }}
 
       - name: Compute checksums
