@@ -1,7 +1,6 @@
 module github.com/pomerium/cli
 
-go 1.23.6
-toolchain go1.24.1
+go 1.23.8
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
