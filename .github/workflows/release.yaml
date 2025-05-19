@@ -27,39 +27,6 @@ jobs:
           )
           echo "versionFlags=${ldflags[*]}" >> $GITHUB_OUTPUT
 
-  build-macos:
-    runs-on: macos-latest
-    needs: metadata
-    outputs:
-      checksums: ${{ steps.build.outputs.checksums }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-
-      - name: Set up Go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b
-        with:
-          go-version: 1.24.x
-
-      - name: Build and archive
-        id: build
-        run: |
-          echo 'checksums<<EOF' >> $GITHUB_OUTPUT
-          for arch in amd64 arm64; do
-            mkdir -p bin/$arch
-            GOARCH=$arch CGO_ENABLED=1 go build -o bin/$arch \
-              -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
-              ./cmd/pomerium-cli
-            gtar czf pomerium-cli-darwin-$arch.tar.gz -C bin/$arch pomerium-cli
-            shasum -a 256 pomerium-cli-darwin-$arch.tar.gz >> $GITHUB_OUTPUT
-          done
-          echo EOF >> $GITHUB_OUTPUT
-
-      - name: Upload to release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" pomerium-cli-darwin-*.tar.gz
-
   build-windows:
     runs-on: windows-latest
     needs: metadata
@@ -207,10 +174,10 @@ jobs:
         env:
           VERSION: '${{ github.event.release.tag_name }}'
 
-      - name: Update homebrew tap
+      - name: trigger mac signed and notarized builds
         uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0
         with:
-          repository: pomerium/homebrew-tap
+          repository: pomerium/mac-builds
           token: ${{ secrets.APPARITOR_GITHUB_TOKEN }}
           event-type: pomerium-cli-release
-          client-payload: '{ "version": "${{ steps.clean_version.outputs.release }}" }'
+          client-payload: '{ "release": "${{ github.event.release.tag_name }}", "version_flags": "${{ needs.metadata.outputs.versionFlags }}", "push": "true" }'
