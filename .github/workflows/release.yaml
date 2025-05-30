@@ -156,14 +156,13 @@ jobs:
 
   finish:
     runs-on: ubuntu-latest
-    needs: [build-macos, build-windows, goreleaser]
+    needs: [build-windows, goreleaser]
     steps:
       - name: Upload checksums
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "${{ needs.build-macos.outputs.checksums }}" >> pomerium-cli_checksums.txt
           echo "${{ needs.build-windows.outputs.checksums }}" >> pomerium-cli_checksums.txt
           echo "${{ needs.goreleaser.outputs.checksums }}" >> pomerium-cli_checksums.txt
           gh release upload "${{ github.event.release.tag_name }}" pomerium-cli_checksums.txt
