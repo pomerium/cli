@@ -1,3 +1,4 @@
+version: 2
 project_name: pomerium-cli
 
 release:
@@ -41,24 +42,24 @@ builds:
 archives:
   - name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     id: pomerium-cli
-    builds:
+    ids:
       - pomerium-cli
     files:
       - none*
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [ 'zip' ]
 
 checksum:
   disable: true
 
 snapshot:
-  name_template: "{{ .Version }}+next+{{ .ShortCommit }}"
+  version_template: "{{ .Version }}+next+{{ .ShortCommit }}"
 
 nfpms:
   - id: pomerium-cli
 
-    builds:
+    ids:
       - pomerium-cli
 
     package_name: pomerium-cli
@@ -77,16 +78,7 @@ nfpms:
 
     bindir: /usr/bin
 
-    overrides:
-      deb:
-        replacements:
-          arm64: arm64
-        file_name_template: '{{ .ProjectName }}_{{ .Version }}-{{ .Release }}_{{ .Arch }}{{ if .Arm }}{{if eq .Arm "7"}}hf{{ end }}{{ end }}'
-      rpm:
-        replacements:
-          arm64: aarch64
-          amd64: x86_64
-        file_name_template: '{{ .ProjectName }}-{{ .Version }}-{{ .Release }}.{{ .Arch }}{{ if .Arm }}{{if eq .Arm "7"}}hf{{ end }}{{ end }}'
+    file_name_template: "{{ .ConventionalFileName }}"
 
 dockers:
   - image_templates:
