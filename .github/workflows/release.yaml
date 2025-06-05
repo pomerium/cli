@@ -121,7 +121,7 @@ jobs:
           TAG=$(git describe --tags --exact-match)
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "version=${TAG#v}" >> $GITHUB_OUTPUT
-          echo "pkgversion=$(echo  ${TAG#v} | tr '-' '~')"
+          echo "pkgversion=$(echo  ${TAG#v} | tr '-' '~')" >> $GITHUB_OUTPUT
 
       - name: Install Cloudsmith CLI
         run: |
