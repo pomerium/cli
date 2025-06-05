@@ -78,7 +78,11 @@ nfpms:
 
     bindir: /usr/bin
 
-    file_name_template: "{{ .ConventionalFileName }}"
+    file_name_template: >-
+      {{- trimsuffix .ConventionalFileName .ConventionalExtension -}}
+      {{- if and (eq .Arm "6") (eq .ConventionalExtension ".deb") }}6{{ end -}}
+      {{- if not (eq .Amd64 "v1")}}{{ .Amd64 }}{{ end -}}
+      {{- .ConventionalExtension -}}
 
 dockers:
   - image_templates:
