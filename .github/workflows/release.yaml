@@ -157,7 +157,7 @@ jobs:
 
   finish:
     runs-on: ubuntu-latest
-    needs: [build-windows, goreleaser]
+    needs: [build-windows, goreleaser, metadata]
     steps:
       - name: Upload checksums
         env:
