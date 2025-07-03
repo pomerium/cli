@@ -229,7 +229,7 @@ func (t *http3tunneler) getTransport(enableDatagrams bool) (*http3.Transport, er
 	return transport, nil
 }
 
-func (t *http3tunneler) readLocal(ctx context.Context, dst http3.Stream, src UDPDatagramReader) error {
+func (t *http3tunneler) readLocal(ctx context.Context, dst *http3.RequestStream, src UDPDatagramReader) error {
 	var logMaxDatagramPayloadSizeOnce sync.Once
 	for {
 		datagram, err := src.ReadDatagram(ctx)
@@ -254,7 +254,7 @@ func (t *http3tunneler) readLocal(ctx context.Context, dst http3.Stream, src UDP
 	}
 }
 
-func (t *http3tunneler) readRemote(ctx context.Context, dst UDPDatagramWriter, src http3.Stream) error {
+func (t *http3tunneler) readRemote(ctx context.Context, dst UDPDatagramWriter, src *http3.RequestStream) error {
 	for {
 		data, err := src.ReceiveDatagram(ctx)
 		if err != nil {
@@ -274,7 +274,7 @@ func (t *http3tunneler) readRemote(ctx context.Context, dst UDPDatagramWriter, s
 	}
 }
 
-func (t *http3tunneler) skipCapsules(ctx context.Context, str http3.Stream) error {
+func (t *http3tunneler) skipCapsules(ctx context.Context, str *http3.RequestStream) error {
 	stop := context.AfterFunc(ctx, func() { str.CancelRead(0) })
 	defer stop()
 	r := quicvarint.NewReader(str)
