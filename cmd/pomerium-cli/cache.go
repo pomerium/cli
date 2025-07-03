@@ -129,7 +129,7 @@ func saveCachedCredential(serverURL string, creds *ExecCredential) error {
 		return fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
-	f, err := os.Create(fn)
+	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("failed to create cache file: %w", err)
 	}
