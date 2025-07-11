@@ -8,10 +8,10 @@ import (
 )
 
 var (
-	// ProjectName is the canonical project name set by ldl flags
-	ProjectName = ""
-	// ProjectURL is the canonical project url  set by ldl flags
-	ProjectURL = ""
+	// ProjectName is the canonical project name.
+	ProjectName = "pomerium-cli"
+	// ProjectURL is the canonical project url.
+	ProjectURL = "https://www.pomerium.com"
 	// Version specifies Semantic versioning increment (MAJOR.MINOR.PATCH).
 	Version = "v0.0.0"
 	// GitCommit specifies the git commit sha, set by the compiler.

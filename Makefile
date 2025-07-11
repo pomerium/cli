@@ -24,8 +24,6 @@ endif
 
 CTIMEVAR=-X $(PKG)/version.GitCommit=$(GITCOMMIT) \
 	-X $(PKG)/version.BuildMeta=$(BUILDMETA) \
-	-X $(PKG)/version.ProjectName=$(NAME) \
-	-X $(PKG)/version.ProjectURL=$(PKG)
 
 GO ?= "go"
 GO_LDFLAGS=-ldflags "-s -w $(CTIMEVAR)"

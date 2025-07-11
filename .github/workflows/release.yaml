@@ -22,8 +22,6 @@ jobs:
             "-X github.com/pomerium/cli/version.Version=${{ github.event.release.tag_name }}"
             "-X github.com/pomerium/cli/version.GitCommit=$(git rev-parse --short HEAD)"
             "-X github.com/pomerium/cli/version.BuildMeta=$(date +%s)"
-            "-X github.com/pomerium/cli/version.ProjectName=pomerium-cli"
-            "-X github.com/pomerium/cli/version.ProjectURL=https://www.pomerium.com"
           )
           echo "versionFlags=${ldflags[*]}" >> $GITHUB_OUTPUT
 
