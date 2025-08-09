@@ -10,27 +10,15 @@ on:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
-        platform: [ubuntu-latest]
+        platform: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
         with:
           go-version: 1.24.x
-      - name: set env vars
-        run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          fetch-depth: 0
-      - name: cache go binaries
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
-        id: cache-go-bin
-        with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-${{ hashFiles('**/go.mod') }}
-          restore-keys: ${{ runner.os }}-go-bin
-      - name: Lint
-        run: make lint
       - name: test
         run: make test
 

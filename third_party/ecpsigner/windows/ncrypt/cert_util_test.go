@@ -17,11 +17,15 @@
 package ncrypt
 
 import (
+	"crypto/x509"
 	"testing"
 )
 
 func TestCredProviderNotSupported(t *testing.T) {
-	_, err := Cred("issuer", "store", "unsupported_provider")
+	_, err := Cred(
+		[][]byte{[]byte("issuer")},
+		func(c *x509.Certificate) bool { return true },
+		"store", "unsupported_provider")
 	if err == nil {
 		t.Errorf("Expected error, but got nil.")
 	}
