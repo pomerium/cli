@@ -42,7 +42,7 @@ func runTcpForever(destination string) error {
 }
 
 func runTcp(ctx context.Context, destination string) error {
-	destinationAddr, proxyURL, err := tunnel.ParseURLs(args[0], tcpCmdOptions.pomeriumURL)
+	destinationAddr, proxyURL, err := tunnel.ParseURLs(destination, tcpCmdOptions.pomeriumURL)
 	if err != nil {
 		return err
 	}
