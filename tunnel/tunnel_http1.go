@@ -20,6 +20,8 @@ type http1tunneler struct {
 	cfg *config
 }
 
+func (*http1tunneler) Name() string { return "http1" }
+
 func (t *http1tunneler) TunnelTCP(
 	ctx context.Context,
 	eventSink EventSink,
@@ -45,7 +47,10 @@ func (t *http1tunneler) TunnelTCP(
 	var remote net.Conn
 	var err error
 	if t.cfg.tlsConfig != nil {
-		remote, err = (&tls.Dialer{Config: t.cfg.tlsConfig}).DialContext(ctx, "tcp", t.cfg.proxyHost)
+		cfg := t.cfg.tlsConfig.Clone()
+		cfg.NextProtos = []string{"http/1.1"}
+
+		remote, err = (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", t.cfg.proxyHost)
 	} else {
 		remote, err = (&net.Dialer{}).DialContext(ctx, "tcp", t.cfg.proxyHost)
 	}
@@ -76,17 +81,9 @@ func (t *http1tunneler) TunnelTCP(
 		_ = res.Body.Close()
 	}()
 
-	switch res.StatusCode {
-	case http.StatusOK:
-	case http.StatusServiceUnavailable:
-		return errUnavailable
-	case http.StatusMovedPermanently,
-		http.StatusFound,
-		http.StatusTemporaryRedirect,
-		http.StatusPermanentRedirect:
-		return errUnauthenticated
-	default:
-		return fmt.Errorf("http/1: invalid http response code: %d", res.StatusCode)
+	err = httpStatusCodeToError(res.StatusCode)
+	if err != nil {
+		return err
 	}
 
 	eventSink.OnConnected(ctx)
@@ -116,7 +113,7 @@ func (t *http1tunneler) TunnelTCP(
 func (t *http1tunneler) TunnelUDP(
 	ctx context.Context,
 	eventSink EventSink,
-	local UDPPacketReaderWriter,
+	local UDPDatagramReaderWriter,
 	rawJWT string,
 ) error {
 	eventSink.OnConnecting(ctx)
@@ -178,27 +175,19 @@ func (t *http1tunneler) TunnelUDP(
 		_ = res.Body.Close()
 	}()
 
-	switch res.StatusCode {
-	case http.StatusOK:
-	case http.StatusServiceUnavailable:
-		return errUnavailable
-	case http.StatusMovedPermanently,
-		http.StatusFound,
-		http.StatusTemporaryRedirect,
-		http.StatusPermanentRedirect:
-		return errUnauthenticated
-	default:
-		return fmt.Errorf("http/1: invalid http response code: %d", res.StatusCode)
+	err = httpStatusCodeToError(res.StatusCode)
+	if err != nil {
+		return err
 	}
 
 	eventSink.OnConnected(ctx)
 
 	eg, ectx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		return streamFromCapsuleDatagramsToUDPPacketWriter(ectx, local, res.Body)
+		return streamFromCapsuleDatagramsToUDPDatagramWriter(ectx, local, res.Body)
 	})
 	eg.Go(func() error {
-		return streamFromUDPPacketReaderToCapsuleDatagrams(ectx, remote, local)
+		return streamFromUDPDatagramReaderToCapsuleDatagrams(ectx, remote, local)
 	})
 	err = eg.Wait()
 

@@ -3,6 +3,7 @@ package tunnel
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -131,4 +132,112 @@ func TestTCPTunnelViaHTTP3(t *testing.T) {
 	}
 	err = tun.TunnelTCP(ctx, DiscardEvents(), c2, "JWT")
 	assert.NoError(t, err)
+}
+
+func TestUDPTunnelViaHTTP3(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	ctx, clearTimeout := context.WithTimeout(ctx, 10*time.Second)
+	defer clearTimeout()
+
+	proxyPort := testutil.GetPort(t)
+	tunnelPort := testutil.GetPort(t)
+	localPort := testutil.GetPort(t)
+
+	cert, err := tls.X509KeyPair(testCert, testKey)
+	require.NoError(t, err)
+
+	srv := &http3.Server{
+		Addr: "127.0.0.1:" + proxyPort,
+		TLSConfig: &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		},
+		EnableDatagrams: true,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			require.Equal(t, "CONNECT", r.Method)
+			require.Equal(t, "connect-udp", r.Proto)
+			require.Equal(t, "/.well-known/masque/udp/example.com/9999/", r.URL.Path)
+			w.WriteHeader(200)
+			w.(http.Flusher).Flush()
+
+			str := w.(http3.HTTPStreamer).HTTPStream()
+			defer str.Close()
+
+			for {
+				data, err := str.ReceiveDatagram(ctx)
+				if errors.Is(err, context.Canceled) {
+					return
+				}
+				require.NoError(t, err)
+				require.Equal(t, "\x00SEND HELLO WORLD", string(data))
+
+				err = str.SendDatagram([]byte("\x00RECV HELLO WORLD"))
+				require.NoError(t, err)
+			}
+		}),
+	}
+	t.Cleanup(func() { srv.Close() })
+	go func() { _ = srv.ListenAndServe() }()
+	go func() {
+		hsrv := &http.Server{
+			Addr: "127.0.0.1:" + proxyPort,
+			TLSConfig: &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			},
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Alt-Svc", `h3=":`+proxyPort+`"`)
+				w.WriteHeader(http.StatusNoContent)
+			}),
+		}
+		_ = hsrv.ListenAndServeTLS("", "")
+	}()
+
+	tun := New(
+		WithDestinationHost("example.com:9999"),
+		WithProxyHost("127.0.0.1:"+proxyPort),
+		WithTLSConfig(&tls.Config{
+			InsecureSkipVerify: true,
+		}))
+
+	// start the tunnel udp session manager
+
+	tunnelAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+tunnelPort)
+	require.NoError(t, err)
+
+	tunnelConn, err := net.ListenUDP("udp", tunnelAddr)
+	require.NoError(t, err)
+
+	tunErrC := make(chan error, 1)
+	go func() { tunErrC <- tun.RunUDPSessionManager(ctx, tunnelConn, LogEvents()) }()
+
+	// create the local connection
+
+	localAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+localPort)
+	require.NoError(t, err)
+
+	conn, err := net.ListenUDP("udp", localAddr)
+	require.NoError(t, err)
+	context.AfterFunc(ctx, func() { _ = conn.Close() })()
+
+	n, err := conn.WriteToUDP([]byte("SEND HELLO WORLD"), tunnelAddr)
+	assert.Equal(t, 16, n)
+	assert.NoError(t, err)
+
+	payload := make([]byte, maxUDPPacketSize)
+	n, _, err = conn.ReadFromUDP(payload)
+	assert.Equal(t, []byte("RECV HELLO WORLD"), payload[:n])
+	assert.Equal(t, 16, n)
+	assert.NoError(t, err)
+
+	// cancel the context to stop the tunnel
+	cancel()
+	err = <-tunErrC
+	if errors.Is(err, context.Canceled) {
+		err = nil
+	}
+	assert.NoError(t, err, "tunnel should shutdown cleanly")
 }

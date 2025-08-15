@@ -2,12 +2,17 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"fmt"
 	"io"
+	"net"
 	"sync"
 
 	"github.com/golang/groupcache/lru"
 
+	"github.com/pomerium/cli/certstore"
 	pb "github.com/pomerium/cli/proto"
 	"github.com/pomerium/cli/tunnel"
 )
@@ -38,6 +43,7 @@ type ListenerStatus interface {
 // Tunnel is abstraction over tunnel.Tunnel to allow mocking
 type Tunnel interface {
 	Run(context.Context, io.ReadWriter, tunnel.EventSink) error
+	RunUDPSessionManager(ctx context.Context, conn *net.UDPConn, eventSink tunnel.EventSink) error
 }
 
 // Server implements both config and listener interfaces
@@ -143,4 +149,53 @@ func (s *MemCP) Load() ([]byte, error) {
 func (s *MemCP) Save(data []byte) error {
 	s.data = data
 	return nil
+}
+
+type tlsOptions interface {
+	GetCaCert() []byte
+	GetClientCert() *pb.Certificate
+	GetClientCertFromStore() *pb.ClientCertFromStore
+	GetDisableTlsVerification() bool
+}
+
+func getTLSConfig(conn tlsOptions) (*tls.Config, error) {
+	cfg := &tls.Config{
+		//nolint: gosec
+		InsecureSkipVerify: conn.GetDisableTlsVerification(),
+	}
+
+	if c := conn.GetClientCert(); c != nil {
+		if len(c.Cert) == 0 {
+			return nil, fmt.Errorf("client cert: certificate is missing")
+		}
+		if len(c.Key) == 0 {
+			return nil, fmt.Errorf("client cert: key is missing")
+		}
+		cert, err := tls.X509KeyPair(c.Cert, c.Key)
+		if err != nil {
+			return nil, fmt.Errorf("client cert: %w", err)
+		}
+		cfg.Certificates = append(cfg.Certificates, cert)
+	}
+	if c := conn.GetClientCertFromStore(); c != nil {
+		f, err := certstore.GetClientCertificateFunc(c.GetIssuerFilter(), c.GetSubjectFilter())
+		if err != nil {
+			return nil, fmt.Errorf("client cert from store: %w", err)
+		}
+		cfg.GetClientCertificate = f
+	}
+
+	if len(conn.GetCaCert()) == 0 {
+		return cfg, nil
+	}
+
+	rootCA, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("get system cert pool: %w", err)
+	}
+	if ok := rootCA.AppendCertsFromPEM(conn.GetCaCert()); !ok {
+		return nil, fmt.Errorf("failed to append provided certificate")
+	}
+	cfg.RootCAs = rootCA
+	return cfg, nil
 }

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/quic-go/quic-go/http3"
 	"github.com/quic-go/quic-go/quicvarint"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,9 +44,9 @@ func TestUDPSessionManager(t *testing.T) {
 
 		payload, err := readUDPCapsuleDatagram(quicvarint.NewReader(in))
 		require.NoError(t, err)
-		require.Equal(t, []byte("SEND HELLO WORLD"), payload)
+		require.Equal(t, []byte("\x00SEND HELLO WORLD"), payload)
 
-		err = writeUDPCapsuleDatagram(quicvarint.NewWriter(brw), []byte("RECV HELLO WORLD"))
+		err = http3.WriteCapsule(quicvarint.NewWriter(brw), 0, []byte("\x00RECV HELLO WORLD"))
 		require.NoError(t, err)
 		err = brw.Flush()
 		require.NoError(t, err)
@@ -67,7 +68,7 @@ func TestUDPSessionManager(t *testing.T) {
 	require.NoError(t, err)
 
 	tunErrC := make(chan error, 1)
-	go func() { tunErrC <- tun.RunUDPSessionManager(ctx, tunnelConn) }()
+	go func() { tunErrC <- tun.RunUDPSessionManager(ctx, tunnelConn, LogEvents()) }()
 
 	localAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+localPort)
 	require.NoError(t, err)

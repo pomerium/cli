@@ -1,3 +1,4 @@
+version: 2
 project_name: pomerium-cli
 
 release:
@@ -41,53 +42,24 @@ builds:
 archives:
   - name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     id: pomerium-cli
-    builds:
+    ids:
       - pomerium-cli
     files:
       - none*
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [ 'zip' ]
 
 checksum:
   disable: true
 
 snapshot:
-  name_template: "{{ .Version }}+next+{{ .ShortCommit }}"
-
-brews:
-  - # Name template of the recipe
-    name: pomerium-cli
-
-    # IDs of the archives to use.
-    ids:
-      - pomerium-cli
-
-    # GOARM to specify which 32-bit arm version to use if there are multiple versions
-    # from the build section. Brew formulas support atm only one 32-bit version.
-    # Default is 6 for all artifacts or each id if there a multiple versions.
-    goarm: 6
-
-    tap:
-      owner: pomerium
-      name: homebrew-tap
-      # Optionally a token can be provided, if it differs from the token provided to GoReleaser
-      token: "{{ .Env.APPARITOR_GITHUB_TOKEN }}"
-
-    # Git author used to commit to the repository.
-    # Defaults are shown.
-    commit_author:
-      name: apparitor
-      email: apparitor@users.noreply.github.com
-
-    folder: Formula
-    install: |
-      bin.install "pomerium-cli"
+  version_template: "{{ .Version }}+next+{{ .ShortCommit }}"
 
 nfpms:
   - id: pomerium-cli
 
-    builds:
+    ids:
       - pomerium-cli
 
     package_name: pomerium-cli
@@ -106,16 +78,11 @@ nfpms:
 
     bindir: /usr/bin
 
-    overrides:
-      deb:
-        replacements:
-          arm64: arm64
-        file_name_template: '{{ .ProjectName }}_{{ .Version }}-{{ .Release }}_{{ .Arch }}{{ if .Arm }}{{if eq .Arm "7"}}hf{{ end }}{{ end }}'
-      rpm:
-        replacements:
-          arm64: aarch64
-          amd64: x86_64
-        file_name_template: '{{ .ProjectName }}-{{ .Version }}-{{ .Release }}.{{ .Arch }}{{ if .Arm }}{{if eq .Arm "7"}}hf{{ end }}{{ end }}'
+    file_name_template: >-
+      {{- trimsuffix .ConventionalFileName .ConventionalExtension -}}
+      {{- if and (eq .Arm "6") (eq .ConventionalExtension ".deb") }}6{{ end -}}
+      {{- if not (eq .Amd64 "v1")}}{{ .Amd64 }}{{ end -}}
+      {{- .ConventionalExtension -}}
 
 dockers:
   - image_templates:
@@ -131,7 +98,7 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--label=org.opencontainers.image.source={{.GitURL}}"
       - "--label=repository=http://github.com/pomerium/cli"
-      - "--label=homepage=http://www.pomerium.io"
+      - "--label=homepage=https://www.pomerium.com"
 
   - goarch: arm64
     image_templates:
@@ -147,7 +114,7 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--label=org.opencontainers.image.source={{.GitURL}}"
       - "--label=repository=http://github.com/pomerium/cli"
-      - "--label=homepage=http://www.pomerium.io"
+      - "--label=homepage=https://www.pomerium.com"
 
 docker_manifests:
   - name_template: "pomerium/cli:{{ .Tag }}"

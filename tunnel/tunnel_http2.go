@@ -77,17 +77,9 @@ func (t *http2tunneler) TunnelTCP(
 	}
 	defer res.Body.Close()
 
-	switch res.StatusCode {
-	case http.StatusOK:
-	case http.StatusServiceUnavailable:
-		return errUnavailable
-	case http.StatusMovedPermanently,
-		http.StatusFound,
-		http.StatusTemporaryRedirect,
-		http.StatusPermanentRedirect:
-		return errUnauthenticated
-	default:
-		return fmt.Errorf("http/2: invalid http response code: %d", res.StatusCode)
+	err = httpStatusCodeToError(res.StatusCode)
+	if err != nil {
+		return err
 	}
 
 	eventSink.OnConnected(ctx)

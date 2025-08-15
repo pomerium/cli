@@ -50,10 +50,12 @@ tidy: ## run go mod tidy
 	go mod tidy -compat=1.19
 
 .PHONY: tools
-tools: ## generate protobuff files
-	go install google.golang.org/protobuf/cmd/protoc-gen-go
-	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
-	buf generate
+tools: generate
+
+.PHONY: generate
+generate:
+	@echo "==> $@"
+	go run github.com/bufbuild/buf/cmd/buf@v1.51.0 generate
 
 .PHONY: clean
 clean: ## Cleanup any build binaries or packages.
@@ -68,7 +70,7 @@ build: ## Build everything.
 
 .PHONY: snapshot
 snapshot: ## Create release snapshot
-	APPARITOR_GITHUB_TOKEN=foo VERSION_FLAGS="$(CTIMEVAR)" goreleaser release --snapshot --rm-dist
+	APPARITOR_GITHUB_TOKEN=foo VERSION_FLAGS="$(CTIMEVAR)" goreleaser release --snapshot --clean
 
 
 .PHONY: help

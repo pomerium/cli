@@ -110,7 +110,7 @@ func loadCachedCredential(serverURL string) (*ExecCredential, error) {
 	}
 
 	ts := creds.Status.ExpirationTimestamp
-	if ts.IsZero() || ts.Before(time.Now()) {
+	if !ts.IsZero() && ts.Before(time.Now()) {
 		_ = os.Remove(fn)
 		return nil, errors.New("expired")
 	}
@@ -129,7 +129,7 @@ func saveCachedCredential(serverURL string, creds *ExecCredential) error {
 		return fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
-	f, err := os.Create(fn)
+	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("failed to create cache file: %w", err)
 	}
@@ -146,4 +146,26 @@ func saveCachedCredential(serverURL string, creds *ExecCredential) error {
 	}
 
 	return nil
+}
+
+func loadLastURL() string {
+	fn, err := cache.LastURLPath()
+	if err != nil {
+		return ""
+	}
+
+	bs, err := os.ReadFile(fn)
+	if err != nil {
+		return ""
+	}
+	return string(bs)
+}
+
+func cacheLastURL(rawServerURL string) {
+	fn, err := cache.LastURLPath()
+	if err != nil {
+		return
+	}
+
+	_ = os.WriteFile(fn, []byte(rawServerURL), 0o644)
 }

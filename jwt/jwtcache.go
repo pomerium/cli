@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/go-jose/go-jose/v3"
 	"github.com/martinlindhe/base36"
+	"github.com/rs/zerolog/log"
+	"github.com/volatiletech/null/v9"
 
 	"github.com/pomerium/cli/internal/cache"
 	"github.com/pomerium/pomerium/pkg/cryptutil"
@@ -23,20 +26,38 @@ var (
 	ErrNotFound = errors.New("not found")
 )
 
-// A JWTCache loads and stores JWTs.
-type JWTCache interface {
+// A Cache loads and stores JWTs.
+type Cache interface {
 	DeleteJWT(key string) error
 	LoadJWT(key string) (rawJWT string, err error)
 	StoreJWT(key string, rawJWT string) error
 }
 
-// A LocalJWTCache stores files in the user's cache directory.
-type LocalJWTCache struct {
+var (
+	globalCacheOnce sync.Once
+	globalCache     Cache
+)
+
+// GetCache gets the Cache. Either a local one is used or if that's not possible an in-memory one is used.
+func GetCache() Cache {
+	globalCacheOnce.Do(func() {
+		if c, err := NewLocalCache(); err == nil {
+			globalCache = c
+		} else {
+			log.Error().Err(err).Msg("error creating local JWT cache, using in-memory JWT cache")
+			globalCache = NewMemoryCache()
+		}
+	})
+	return globalCache
+}
+
+// A LocalCache stores files in the user's cache directory.
+type LocalCache struct {
 	dir string
 }
 
-// NewLocalJWTCache creates a new LocalJWTCache.
-func NewLocalJWTCache() (*LocalJWTCache, error) {
+// NewLocalCache creates a new LocalCache.
+func NewLocalCache() (*LocalCache, error) {
 	dir, err := cache.JWTsPath()
 	if err != nil {
 		return nil, err
@@ -47,13 +68,13 @@ func NewLocalJWTCache() (*LocalJWTCache, error) {
 		return nil, fmt.Errorf("error creating user cache directory: %w", err)
 	}
 
-	return &LocalJWTCache{
+	return &LocalCache{
 		dir: dir,
 	}, nil
 }
 
 // DeleteJWT deletes a raw JWT from the local cache.
-func (cache *LocalJWTCache) DeleteJWT(key string) error {
+func (cache *LocalCache) DeleteJWT(key string) error {
 	path := filepath.Join(cache.dir, cache.fileName(key))
 	err := os.Remove(path)
 	if os.IsNotExist(err) {
@@ -63,7 +84,7 @@ func (cache *LocalJWTCache) DeleteJWT(key string) error {
 }
 
 // LoadJWT loads a raw JWT from the local cache.
-func (cache *LocalJWTCache) LoadJWT(key string) (rawJWT string, err error) {
+func (cache *LocalCache) LoadJWT(key string) (rawJWT string, err error) {
 	path := filepath.Join(cache.dir, cache.fileName(key))
 	rawBS, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
@@ -77,9 +98,14 @@ func (cache *LocalJWTCache) LoadJWT(key string) (rawJWT string, err error) {
 }
 
 // StoreJWT stores a raw JWT in the local cache.
-func (cache *LocalJWTCache) StoreJWT(key string, rawJWT string) error {
+func (cache *LocalCache) StoreJWT(key string, rawJWT string) error {
+	err := os.MkdirAll(cache.dir, 0o755)
+	if err != nil {
+		return err
+	}
+
 	path := filepath.Join(cache.dir, cache.fileName(key))
-	err := os.WriteFile(path, []byte(rawJWT), 0o600)
+	err = os.WriteFile(path, []byte(rawJWT), 0o600)
 	if err != nil {
 		return err
 	}
@@ -87,28 +113,28 @@ func (cache *LocalJWTCache) StoreJWT(key string, rawJWT string) error {
 	return nil
 }
 
-func (cache *LocalJWTCache) hash(str string) string {
+func (cache *LocalCache) hash(str string) string {
 	h := cryptutil.Hash("LocalJWTCache", []byte(str))
 	return base36.EncodeBytes(h)
 }
 
-func (cache *LocalJWTCache) fileName(key string) string {
+func (cache *LocalCache) fileName(key string) string {
 	return cache.hash(key) + ".jwt"
 }
 
-// A MemoryJWTCache stores JWTs in an in-memory map.
-type MemoryJWTCache struct {
+// A MemoryCache stores JWTs in an in-memory map.
+type MemoryCache struct {
 	mu      sync.Mutex
 	entries map[string]string
 }
 
-// NewMemoryJWTCache creates a new in-memory JWT cache.
-func NewMemoryJWTCache() *MemoryJWTCache {
-	return &MemoryJWTCache{entries: make(map[string]string)}
+// NewMemoryCache creates a new in-memory JWT cache.
+func NewMemoryCache() *MemoryCache {
+	return &MemoryCache{entries: make(map[string]string)}
 }
 
 // DeleteJWT deletes a JWT from the in-memory map.
-func (cache *MemoryJWTCache) DeleteJWT(key string) error {
+func (cache *MemoryCache) DeleteJWT(key string) error {
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
 
@@ -117,7 +143,7 @@ func (cache *MemoryJWTCache) DeleteJWT(key string) error {
 }
 
 // LoadJWT loads a JWT from the in-memory map.
-func (cache *MemoryJWTCache) LoadJWT(key string) (rawJWT string, err error) {
+func (cache *MemoryCache) LoadJWT(key string) (rawJWT string, err error) {
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
 
@@ -130,7 +156,7 @@ func (cache *MemoryJWTCache) LoadJWT(key string) (rawJWT string, err error) {
 }
 
 // StoreJWT stores a JWT in the in-memory map.
-func (cache *MemoryJWTCache) StoreJWT(key string, rawJWT string) error {
+func (cache *MemoryCache) StoreJWT(key string, rawJWT string) error {
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
 
@@ -146,17 +172,24 @@ func checkExpiry(rawJWT string) error {
 	}
 
 	var claims struct {
-		Expiry int64 `json:"exp"`
+		Expiry null.Int64 `json:"exp"`
 	}
 	err = json.Unmarshal(tok.UnsafePayloadWithoutVerification(), &claims)
 	if err != nil {
 		return ErrInvalid
 	}
 
-	expiresAt := time.Unix(claims.Expiry, 0)
-	if expiresAt.Before(time.Now()) {
-		return ErrExpired
+	if claims.Expiry.Valid {
+		expiresAt := time.Unix(claims.Expiry.Int64, 0)
+		if expiresAt.Before(time.Now()) {
+			return ErrExpired
+		}
 	}
 
 	return nil
+}
+
+// CacheKeyForHost returns the cache key for the given host and tls config.
+func CacheKeyForHost(host string, tlsConfig *tls.Config) string {
+	return fmt.Sprintf("%s|%v", host, tlsConfig != nil)
 }

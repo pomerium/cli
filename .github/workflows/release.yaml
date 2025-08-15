@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       versionFlags: ${{ steps.flags.outputs.versionFlags }}
-      versionNumber: ${{ steps.flags.outputs.versionNumber }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -24,55 +23,13 @@ jobs:
             "-X github.com/pomerium/cli/version.GitCommit=$(git rev-parse --short HEAD)"
             "-X github.com/pomerium/cli/version.BuildMeta=$(date +%s)"
             "-X github.com/pomerium/cli/version.ProjectName=pomerium-cli"
-            "-X github.com/pomerium/cli/version.ProjectURL=https://www.pomerium.io"
+            "-X github.com/pomerium/cli/version.ProjectURL=https://www.pomerium.com"
           )
           echo "versionFlags=${ldflags[*]}" >> $GITHUB_OUTPUT
-          echo "versionNumber=$(echo ${{ github.event.release.tag_name }} | grep -o -P "\d+(?:\.\d+)*" || echo "1.0.0.0")" >> $GITHUB_OUTPUT
-
-  build-macos:
-    runs-on: macos-latest
-    needs: metadata
-    strategy:
-      matrix:
-        arch: [amd64, arm64]
-    outputs:
-      checksums: ${{ steps.build.outputs.checksums }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-
-      - name: Set up Go
-        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed
-        with:
-          go-version: 1.23.x
-
-      - name: Build
-        id: build
-        run: |
-          mkdir -p bin/${{ matrix.arch }}
-          GOARCH=${{ matrix.arch }} CGO_ENABLED=1 go build -o bin/${{ matrix.arch }} \
-            -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
-            ./cmd/pomerium-cli
-
-      - name: Archive
-        id: archive
-        run: |
-          gtar czf pomerium-cli-darwin-${{ matrix.arch }}.tar.gz -C bin/${{ matrix.arch }} pomerium-cli
-          echo 'checksums<<EOF' >> $GITHUB_OUTPUT
-          shasum -a 256 pomerium-cli-darwin-${{ matrix.arch }}.tar.gz >> $GITHUB_OUTPUT
-          echo EOF >> $GITHUB_OUTPUT
-
-      - name: Upload to release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" pomerium-cli-darwin-*.tar.gz
 
   build-windows:
     runs-on: windows-latest
     needs: metadata
-    strategy:
-      matrix:
-        arch: [{go: amd64, wix: x64}, {go: arm64, wix: arm64}]
     outputs:
       checksums: ${{ steps.build.outputs.checksums }}
     steps:
@@ -80,53 +37,32 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Set up Go
-        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
         with:
-          go-version: 1.23.x
+          go-version: 1.24.x
 
-      - name: Set up .NET 8
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Build
+      - name: Build and archive
         id: build
         shell: bash
         run: |
-          mkdir -p bin/${{ matrix.arch.go }}
-          GOARCH=${{ matrix.arch.go }} CGO_ENABLED=1 go build -o bin/${{ matrix.arch.go }} \
-            -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
-            ./cmd/pomerium-cli
-
-      - name: Archive
-        id: archive
-        shell: bash
-        run: |
-          zipfile="pomerium-cli-windows-${{ matrix.arch.go }}.zip"
-          powershell "Compress-Archive -Path bin\\${{ matrix.arch.go }}\\\* -DestinationPath $zipfile"
-          hash=$(powershell "(Get-FileHash $zipfile -Algorithm SHA256).Hash.ToLower()")
           echo 'checksums<<EOF' >> $GITHUB_OUTPUT
-          echo "$hash $zipfile" >> $GITHUB_OUTPUT
-          echo EOF >> $GITHUB_OUTPUT
-
-      - name: Build MSI
-        id: msi
-        shell: bash
-        run: |
-          dotnet tool install --global wix
-          wix extension add -g WixToolset.UI.wixext
-          msifile="pomerium-cli-windows-${{ matrix.arch.go }}.msi"
-          wix build -arch ${{ matrix.arch.wix }} -ext WixToolset.UI.wixext -b bin\\${{ matrix.arch.go }} -d "version=${{ needs.metadata.outputs.versionNumber }}" -o "$msifile" msi/PomeriumCli.wxs msi/WixUI_InstallDir_NoLicense.wxs
-          hash=$(powershell "(Get-FileHash $msifile -Algorithm SHA256).Hash.ToLower()")
-          echo 'checksums<<EOF' >> $GITHUB_OUTPUT
-          echo "$hash $zipfile" >> $GITHUB_OUTPUT
+          for arch in amd64 arm64; do
+            mkdir -p bin/$arch
+            GOARCH=$arch CGO_ENABLED=1 go build -o bin/$arch \
+              -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
+              ./cmd/pomerium-cli
+            zipfile="pomerium-cli-windows-$arch.zip"
+            powershell "Compress-Archive -Path bin\\$arch\\\* -DestinationPath $zipfile"
+            hash=$(powershell "(Get-FileHash $zipfile -Algorithm SHA256).Hash.ToLower()")
+            echo "$hash  $zipfile" >> $GITHUB_OUTPUT
+          done
           echo EOF >> $GITHUB_OUTPUT
 
       - name: Upload to release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" pomerium-cli-windows-*.zip pomerium-cli-windows-*.msi
+        run: gh release upload "${{ github.event.release.tag_name }}" pomerium-cli-windows-*.zip
 
   goreleaser:
     permissions:
@@ -147,15 +83,15 @@ jobs:
           fetch-depth: 0 # GoReleaser needs commit history for changelog
 
       - name: Set up Go
-        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
         with:
-          go-version: 1.23.x
+          go-version: 1.24.x
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
 
       - uses: azure/docker-login@15c4aadf093404726ab2ff205b2cdd33fa6d054c
         with:
@@ -163,13 +99,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6.1.0
+        uses: goreleaser/goreleaser-action@v6.3.0
         with:
-          version: v1.18.2
+          version: v2.8.2
           args: release
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          APPARITOR_GITHUB_TOKEN: ${{ secrets.APPARITOR_GITHUB_TOKEN }}
           VERSION_FLAGS: ${{ needs.metadata.outputs.versionFlags }}
 
       - name: Compute checksums
@@ -186,6 +121,7 @@ jobs:
           TAG=$(git describe --tags --exact-match)
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+          echo "pkgversion=$(echo  ${TAG#v} | tr '-' '~')" >> $GITHUB_OUTPUT
 
       - name: Install Cloudsmith CLI
         run: |
@@ -196,8 +132,8 @@ jobs:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         working-directory: dist/
         run: |
-          VERSION=${{ steps.tagName.outputs.version }}
-          RPMS="pomerium-cli-${VERSION}-1.aarch64.rpm pomerium-cli-${VERSION}-1.x86_64.rpm pomerium-cli-${VERSION}-1.armhf.rpm"
+          VERSION=${{ steps.tagName.outputs.pkgversion }}
+          RPMS="pomerium-cli-${VERSION}-1.aarch64.rpm pomerium-cli-${VERSION}-1.x86_64.rpm pomerium-cli-${VERSION}-1.armv6hl.rpm pomerium-cli-${VERSION}-1.armv7hl.rpm"
           for pkg in $(echo $RPMS); do
             cloudsmith push rpm pomerium/pomerium/el/any-version $pkg
           done
@@ -219,16 +155,29 @@ jobs:
           docker manifest create -a pomerium/cli:latest pomerium/cli:amd64-${{ steps.tagName.outputs.tag }} pomerium/cli:arm64v8-${{ steps.tagName.outputs.tag }}
           docker manifest push pomerium/cli:latest
 
-  upload-checksums:
+  finish:
     runs-on: ubuntu-latest
-    needs: [build-macos, build-windows, goreleaser]
+    needs: [build-windows, goreleaser, metadata]
     steps:
       - name: Upload checksums
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "${{ needs.build-macos.outputs.checksums }}" >> pomerium-cli_checksums.txt
           echo "${{ needs.build-windows.outputs.checksums }}" >> pomerium-cli_checksums.txt
           echo "${{ needs.goreleaser.outputs.checksums }}" >> pomerium-cli_checksums.txt
           gh release upload "${{ github.event.release.tag_name }}" pomerium-cli_checksums.txt
+
+      - id: clean_version
+        run: |
+          echo "release=${VERSION#v}" >> $GITHUB_OUTPUT
+        env:
+          VERSION: '${{ github.event.release.tag_name }}'
+
+      - name: trigger mac signed and notarized builds
+        uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0
+        with:
+          repository: pomerium/mac-builds
+          token: ${{ secrets.APPARITOR_GITHUB_TOKEN }}
+          event-type: pomerium-cli-release
+          client-payload: '{ "release": "${{ github.event.release.tag_name }}", "version_flags": "${{ needs.metadata.outputs.versionFlags }}", "push": "true" }'

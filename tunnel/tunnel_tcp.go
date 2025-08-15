@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog/log"
+
+	"github.com/pomerium/cli/internal/httputil"
 )
 
 // A TCPTunneler tunnels TCP traffic.
@@ -32,9 +34,12 @@ func (tun *Tunnel) pickTCPTunneler(ctx context.Context) TCPTunneler {
 	}
 
 	client := &http.Client{
-		Transport: &http.Transport{
+		Transport: httputil.NewLoggingRoundTripper(log.Logger, &http.Transport{
 			ForceAttemptHTTP2: true,
 			TLSClientConfig:   tun.cfg.tlsConfig,
+		}),
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
 		},
 	}
 
@@ -54,9 +59,6 @@ func (tun *Tunnel) pickTCPTunneler(ctx context.Context) TCPTunneler {
 	if v := res.Header.Get("Alt-Svc"); strings.Contains(v, "h3") {
 		log.Ctx(ctx).Info().Msg("using http3")
 		return &http3tunneler{cfg: tun.cfg}
-	} else if res.ProtoMajor == 2 {
-		log.Ctx(ctx).Info().Msg("using http2")
-		return &http2tunneler{cfg: tun.cfg}
 	}
 
 	log.Ctx(ctx).Info().Msg("using http1")

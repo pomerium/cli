@@ -10,9 +10,10 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"golang.org/x/sync/errgroup"
+
+	"github.com/pomerium/cli/internal/httputil"
 )
 
 // An AuthClient retrieves an authentication JWT via the Pomerium login API.
@@ -25,6 +26,23 @@ func New(options ...Option) *AuthClient {
 	return &AuthClient{
 		cfg: getConfig(options...),
 	}
+}
+
+func (client *AuthClient) CheckBearerToken(ctx context.Context, serverURL *url.URL, bearerToken string) error {
+	browserURL := getBrowserURL(serverURL)
+	dst := browserURL.ResolveReference(&url.URL{
+		Path: "/livez",
+	})
+
+	req, err := http.NewRequest("GET", dst.String(), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+
+	_, err = httputil.Fetch(ctx, client.cfg.tlsConfig, req)
+	return err
 }
 
 // GetJWT retrieves a JWT from Pomerium.
@@ -104,16 +122,7 @@ func (client *AuthClient) runHTTPServer(ctx context.Context, li net.Listener, in
 }
 
 func (client *AuthClient) runOpenBrowser(ctx context.Context, li net.Listener, serverURL *url.URL, onOpenBrowser func(string)) error {
-	browserURL := new(url.URL)
-	*browserURL = *serverURL
-
-	// remove unnecessary ports to avoid HMAC error
-	if browserURL.Scheme == "http" && browserURL.Host == browserURL.Hostname()+":80" {
-		browserURL.Host = browserURL.Hostname()
-	} else if browserURL.Scheme == "https" && browserURL.Host == browserURL.Hostname()+":443" {
-		browserURL.Host = browserURL.Hostname()
-	}
-
+	browserURL := getBrowserURL(serverURL)
 	dst := browserURL.ResolveReference(&url.URL{
 		Path: "/.pomerium/api/v1/login",
 		RawQuery: url.Values{
@@ -121,34 +130,14 @@ func (client *AuthClient) runOpenBrowser(ctx context.Context, li net.Listener, s
 		}.Encode(),
 	})
 
-	ctx, clearTimeout := context.WithTimeout(ctx, 10*time.Second)
-	defer clearTimeout()
-
-	req, err := http.NewRequestWithContext(ctx, "GET", dst.String(), nil)
+	req, err := http.NewRequest("GET", dst.String(), nil)
 	if err != nil {
 		return err
 	}
 
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = client.cfg.tlsConfig
-
-	hc := &http.Client{
-		Transport: transport,
-	}
-
-	res, err := hc.Do(req)
+	bs, err := httputil.Fetch(ctx, client.cfg.tlsConfig, req)
 	if err != nil {
-		return fmt.Errorf("failed to get login url: %w", err)
-	}
-	defer func() { _ = res.Body.Close() }()
-
-	if res.StatusCode/100 != 2 {
-		return fmt.Errorf("failed to get login url: %s", res.Status)
-	}
-
-	bs, err := io.ReadAll(res.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read login url: %w", err)
+		return err
 	}
 
 	onOpenBrowser(string(bs))
@@ -159,4 +148,18 @@ func (client *AuthClient) runOpenBrowser(ctx context.Context, li net.Listener, s
 
 	_, _ = fmt.Fprintf(os.Stderr, "Your browser has been opened to visit:\n\n%s\n\n", string(bs))
 	return nil
+}
+
+func getBrowserURL(serverURL *url.URL) *url.URL {
+	browserURL := new(url.URL)
+	*browserURL = *serverURL
+
+	// remove unnecessary ports to avoid HMAC error
+	if browserURL.Scheme == "http" && browserURL.Host == browserURL.Hostname()+":80" {
+		browserURL.Host = browserURL.Hostname()
+	} else if browserURL.Scheme == "https" && browserURL.Host == browserURL.Hostname()+":443" {
+		browserURL.Host = browserURL.Hostname()
+	}
+
+	return browserURL
 }

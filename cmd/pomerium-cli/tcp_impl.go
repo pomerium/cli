@@ -42,10 +42,11 @@ func runTcpForever(destination string) error {
 }
 
 func runTcp(ctx context.Context, destination string) error {
-	destinationAddr, proxyURL, err := tunnel.ParseURLs(destination, tcpCmdOptions.pomeriumURL)
+	destinationAddr, proxyURL, err := tunnel.ParseURLs(args[0], tcpCmdOptions.pomeriumURL)
 	if err != nil {
 		return err
 	}
+	cacheLastURL(proxyURL.String())
 
 	var tlsConfig *tls.Config
 	if proxyURL.Scheme == "https" {
@@ -54,6 +55,14 @@ func runTcp(ctx context.Context, destination string) error {
 			return err
 		}
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-c
+		cancel()
+	}()
 
 	tun := tunnel.New(
 		tunnel.WithBrowserCommand(browserOptions.command),
