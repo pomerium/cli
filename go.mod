@@ -15,7 +15,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
-	github.com/pomerium/pomerium v0.28.1-0.20250930154737-265f4d30fc2a
+	github.com/pomerium/pomerium v0.28.1-0.20250930205726-e4854c414f5e
 	github.com/quic-go/quic-go v0.54.0
 	github.com/rs/zerolog v1.34.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -34,6 +34,7 @@ require (
 	cel.dev/expr v0.24.0 // indirect
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2 // indirect
 	filippo.io/bigmod v0.0.3 // indirect
+	filippo.io/csrf v0.2.1 // indirect
 	filippo.io/keygen v0.0.0-20250626140535-790df0a991a0 // indirect
 	github.com/VictoriaMetrics/fastcache v1.13.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -58,7 +59,6 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
-	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
@@ -81,10 +81,8 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/open-policy-agent/opa v1.8.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/pomerium/csrf v1.7.0 // indirect
 	github.com/pomerium/protoutil v0.0.0-20240813175624-47b7ac43ff46 // indirect
 	github.com/prometheus/client_golang v1.23.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
