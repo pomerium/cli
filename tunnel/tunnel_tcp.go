@@ -13,6 +13,7 @@ import (
 
 // A TCPTunneler tunnels TCP traffic.
 type TCPTunneler interface {
+	Name() string
 	TunnelTCP(
 		ctx context.Context,
 		eventSink EventSink,
@@ -58,7 +59,7 @@ func (tun *Tunnel) pickTCPTunneler(ctx context.Context) TCPTunneler {
 
 	if v := res.Header.Get("Alt-Svc"); strings.Contains(v, "h3") {
 		log.Ctx(ctx).Info().Msg("using http3")
-		return &http3tunneler{cfg: tun.cfg}
+		return newFallbackTCPTunneler(&http3tunneler{cfg: tun.cfg}, fallback)
 	}
 
 	log.Ctx(ctx).Info().Msg("using http1")
