@@ -15,7 +15,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
-	github.com/pomerium/pomerium v0.28.1-0.20251006153832-e9405c0c2265
+	github.com/pomerium/pomerium v0.31.0
 	github.com/quic-go/quic-go v0.54.1
 	github.com/rs/zerolog v1.34.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
