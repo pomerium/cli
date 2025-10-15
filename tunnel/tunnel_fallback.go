@@ -4,10 +4,53 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/rs/zerolog/log"
 )
+
+type fallbackTCPTunneler struct {
+	mu        sync.Mutex
+	tunnelers []TCPTunneler
+}
+
+func newFallbackTCPTunneler(tunnelers ...TCPTunneler) TCPTunneler {
+	return &fallbackTCPTunneler{
+		tunnelers: tunnelers,
+	}
+}
+
+func (*fallbackTCPTunneler) Name() string { return "fallback" }
+
+func (t *fallbackTCPTunneler) TunnelTCP(
+	ctx context.Context,
+	eventSink EventSink,
+	local io.ReadWriter,
+	rawJWT string,
+) error {
+	for i := range t.tunnelers {
+		t.mu.Lock()
+		tun := t.tunnelers[i]
+		t.mu.Unlock()
+		if tun == nil {
+			continue
+		}
+
+		err := tun.TunnelTCP(ctx, eventSink, local, rawJWT)
+		if errors.Is(err, errUnsupported) {
+			log.Ctx(ctx).Error().Err(err).Msgf("%s tunneler failed", tun.Name())
+			t.mu.Lock()
+			t.tunnelers[i] = nil
+			t.mu.Unlock()
+			continue
+		}
+
+		return err
+	}
+
+	return fmt.Errorf("%w: no tunnelers defined", errUnsupported)
+}
 
 type fallbackUDPTunneler struct {
 	mu        sync.Mutex
@@ -28,28 +71,25 @@ func (t *fallbackUDPTunneler) TunnelUDP(
 	local UDPDatagramReaderWriter,
 	rawJWT string,
 ) error {
-	t.mu.Lock()
-	ts := make([]UDPTunneler, len(t.tunnelers))
-	copy(ts, t.tunnelers)
-	t.mu.Unlock()
-
-	if len(ts) == 0 {
-		return fmt.Errorf("%w: no tunnelers defined", errUnsupported)
-	}
-
-	err := ts[0].TunnelUDP(ctx, eventSink, local, rawJWT)
-	if errors.Is(err, errUnsupported) {
+	for i := range t.tunnelers {
 		t.mu.Lock()
-		if len(ts) == len(t.tunnelers) && len(ts) > 1 {
-			log.Ctx(ctx).Error().Err(err).Msgf("%s tunneler failed, falling back to %s",
-				ts[0].Name(), ts[1].Name())
-			// try the next tunneler
-			t.tunnelers = t.tunnelers[1:]
-			t.mu.Unlock()
-			return t.TunnelUDP(ctx, eventSink, local, rawJWT)
-		}
+		tun := t.tunnelers[i]
 		t.mu.Unlock()
+		if tun == nil {
+			continue
+		}
+
+		err := tun.TunnelUDP(ctx, eventSink, local, rawJWT)
+		if errors.Is(err, errUnsupported) {
+			log.Ctx(ctx).Error().Err(err).Msgf("%s tunneler failed", tun.Name())
+			t.mu.Lock()
+			t.tunnelers[i] = nil
+			t.mu.Unlock()
+			continue
+		}
+
+		return err
 	}
 
-	return err
+	return fmt.Errorf("%w: no tunnelers defined", errUnsupported)
 }
