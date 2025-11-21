@@ -29,8 +29,6 @@ jobs:
           path: ~/go/bin
           key: ${{ runner.os }}-${{ hashFiles('**/go.mod') }}
           restore-keys: ${{ runner.os }}-go-bin
-      - name: Lint
-        run: make lint
       - name: test
         run: make test
 

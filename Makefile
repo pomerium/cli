@@ -36,8 +36,7 @@ all: clean lint test build
 
 .PHONY: test
 test: ## test everything
-	go test ./...
-
+	go test $(GOTAGS) ./...
 
 .PHONY: lint
 lint:
