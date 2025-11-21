@@ -55,12 +55,12 @@ func dbCommand() *dbCmd {
 	}
 	cmd.PersistentPreRunE = cmd.parse
 	flags := cmd.PersistentFlags()
-	flags.BoolVar(&cmd.InsecureSkipVerify, "insecure-skip-verify", false, "skip TLS verification")
-	flags.StringVar(&cmd.CA, "ca", "", "base64 encoded CA PEM cert")
-	flags.StringVar(&cmd.CAFile, "ca-file", "", "CA PEM cert")
-	flags.StringVar(&cmd.OverrideCertificateName, "cert-name-override", "", "override server cert name")
-	flags.DurationVar(&cmd.RequestTimeout, "timeout", time.Second*5, "request timeout")
-	flags.BytesBase64Var(&cmd.SignedJWTKey, "shared-secret", nil, "shared secret to access databroker")
+	flags.BoolVar(&cmd.Options.InsecureSkipVerify, "insecure-skip-verify", false, "skip TLS verification")
+	flags.StringVar(&cmd.Options.CA, "ca", "", "base64 encoded CA PEM cert")
+	flags.StringVar(&cmd.Options.CAFile, "ca-file", "", "CA PEM cert")
+	flags.StringVar(&cmd.Options.OverrideCertificateName, "cert-name-override", "", "override server cert name")
+	flags.DurationVar(&cmd.Options.RequestTimeout, "timeout", time.Second*5, "request timeout")
+	flags.BytesBase64Var(&cmd.Options.SignedJWTKey, "shared-secret", nil, "shared secret to access databroker")
 	_ = cmd.MarkPersistentFlagRequired("shared-secret")
 
 	flags.StringVar(&cmd.serviceURL, "service-url", "http://localhost:5443", "databroker service url")
@@ -108,8 +108,8 @@ func (cmd *dbCmd) parse(c *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("parsing service url %s: %w", cmd.serviceURL, err)
 	}
-	cmd.Address = u
-	cmd.ServiceName = "databroker"
+	cmd.Options.Address = u
+	cmd.Options.ServiceName = "databroker"
 	return nil
 }
 
