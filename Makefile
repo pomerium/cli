@@ -2,7 +2,6 @@ PREFIX?=$(shell pwd)
 NAME := pomerium-cli
 PKG := github.com/pomerium/cli
 
-
 BUILDDIR := ${PREFIX}/dist
 BINDIR := ${PREFIX}/bin
 
@@ -28,6 +27,7 @@ CTIMEVAR=-X $(PKG)/version.GitCommit=$(GITCOMMIT) \
 	-X $(PKG)/version.ProjectURL=$(PKG)
 
 GO ?= "go"
+GOTAGS = -tags embed_pomerium
 GO_LDFLAGS=-ldflags "-s -w $(CTIMEVAR)"
 GOOSARCHES = linux/amd64 darwin/amd64 windows/amd64
 
@@ -36,14 +36,13 @@ all: clean lint test build
 
 .PHONY: test
 test: ## test everything
-	go test ./...
-
+	go test $(GOTAGS) ./...
 
 .PHONY: lint
 lint:
 	@echo "@==> $@"
 	@VERSION=$$(go run github.com/mikefarah/yq/v4@v4.34.1 '.jobs.lint.steps[] | select(.uses == "golangci/golangci-lint-action*") | .with.version' .github/workflows/lint.yml) && \
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint@$$VERSION run ./...
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint@$$VERSION run --build-tags embed_pomerium ./...
 
 .PHONY: tidy
 tidy: ## run go mod tidy
@@ -66,7 +65,7 @@ clean: ## Cleanup any build binaries or packages.
 .PHONY: build
 build: ## Build everything.
 	@echo "==> $@"
-	@go build -tags "$(BUILDTAGS)" $(GO_LDFLAGS) -o $(BINDIR)/$(NAME) ./cmd/"$(NAME)"
+	@go build $(GOTAGS) $(GO_LDFLAGS) -o $(BINDIR)/$(NAME) ./cmd/"$(NAME)"
 
 .PHONY: snapshot
 snapshot: ## Create release snapshot
