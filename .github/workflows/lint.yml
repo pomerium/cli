@@ -11,7 +11,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
 
       - uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84
         with:
