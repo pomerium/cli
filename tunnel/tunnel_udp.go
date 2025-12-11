@@ -19,32 +19,41 @@ const maxUDPPacketSize = (2 << 15) - 1
 
 var contextIDZero = quicvarint.Append(nil, 0)
 
+// A UDPDatagram represents a udp datagram.
 type UDPDatagram struct {
 	Addr netip.AddrPort
 	data []byte
 }
 
+// ContextID is the context id of a udp datagram.
 func (d UDPDatagram) ContextID() uint64 {
 	id, _, _ := quicvarint.Parse(d.data)
 	return id
 }
 
+// Payload is the payload of a udp datagram.
 func (d UDPDatagram) Payload() []byte {
 	_, n, _ := quicvarint.Parse(d.data)
 	return d.data[n:]
 }
 
+// A UDPDatagramReader reads udp datagrams.
 type UDPDatagramReader interface {
 	ReadDatagram(ctx context.Context) (UDPDatagram, error)
 }
+
+// A UDPDatagramWriter writes udp datagrams.
 type UDPDatagramWriter interface {
 	WriteDatagram(ctx context.Context, datagram UDPDatagram) error
 }
+
+// A UDPDatagramReaderWriter reads and writes udp datagrams.
 type UDPDatagramReaderWriter interface {
 	UDPDatagramReader
 	UDPDatagramWriter
 }
 
+// A UDPTunneler tunnels udp traffic.
 type UDPTunneler interface {
 	Name() string
 	TunnelUDP(
@@ -55,6 +64,7 @@ type UDPTunneler interface {
 	) error
 }
 
+// RunUDPListener runs the udp listener.
 func (tun *Tunnel) RunUDPListener(ctx context.Context, listenerAddress string) error {
 	ctx = log.Ctx(ctx).With().Str("listener-addr", listenerAddress).Logger().WithContext(ctx)
 
@@ -75,6 +85,7 @@ func (tun *Tunnel) RunUDPListener(ctx context.Context, listenerAddress string) e
 	return err
 }
 
+// RunUDPSessionManager runs the udp session manager.
 func (tun *Tunnel) RunUDPSessionManager(ctx context.Context, conn *net.UDPConn, eventSink EventSink) error {
 	tunneler := newFallbackUDPTunneler(&http3tunneler{cfg: tun.cfg}, &http1tunneler{cfg: tun.cfg})
 	return newUDPSessionManager(conn, func(ctx context.Context, urw UDPDatagramReaderWriter) error {

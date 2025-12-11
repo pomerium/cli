@@ -160,14 +160,14 @@ func (e *events) update(ctx context.Context, evt *pb.ConnectionStatusUpdate) err
 	var cleanup []*subscriber
 
 	for _, sub := range subs {
-		if sub.Context.Err() != nil {
+		if sub.Err() != nil {
 			cleanup = append(cleanup, sub)
 			continue
 		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-sub.Context.Done():
+		case <-sub.Done():
 			cleanup = append(cleanup, sub)
 			continue
 		case <-time.After(updateDeadline):

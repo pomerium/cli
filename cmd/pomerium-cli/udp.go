@@ -22,7 +22,7 @@ var udpCmd = &cobra.Command{
 	Use:   "udp destination",
 	Short: "creates a UDP tunnel through Pomerium",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		destinationAddr, proxyURL, err := tunnel.ParseURLs(args[0], tcpCmdOptions.pomeriumURL)
 		if err != nil {
 			return err

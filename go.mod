@@ -1,8 +1,6 @@
 module github.com/pomerium/cli
 
-go 1.24.6
-
-toolchain go1.24.7
+go 1.25.4
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
@@ -15,7 +13,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
-	github.com/pomerium/pomerium v0.30.7-0.20251208230335-55a9a4bdebb2
+	github.com/pomerium/pomerium v0.30.7-0.20251211024755-87a606bfb2aa
 	github.com/quic-go/quic-go v0.57.1
 	github.com/rs/zerolog v1.34.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -83,7 +81,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/pomerium/envoy-custom v1.36.2-rc2 // indirect
+	github.com/pomerium/envoy-custom v1.36.4-rc1 // indirect
 	github.com/pomerium/protoutil v0.0.0-20240813175624-47b7ac43ff46 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect

@@ -24,7 +24,7 @@ func TestTunnel(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
-	defer func() { _ = backend.Close() }()
+	defer backend.Close()
 
 	go func() {
 		for {
@@ -33,7 +33,7 @@ func TestTunnel(t *testing.T) {
 				return
 			}
 			go func() {
-				defer func() { _ = conn.Close() }()
+				defer conn.Close()
 
 				ln, _, _ := bufio.NewReader(conn).ReadLine()
 				assert.Equal(t, "HELLO WORLD", string(ln))
@@ -55,13 +55,13 @@ func TestTunnel(t *testing.T) {
 		if !assert.NoError(t, err) {
 			return
 		}
-		defer func() { _ = in.Close() }()
+		defer in.Close()
 
 		out, err := net.Dial("tcp", backend.Addr().String())
 		if !assert.NoError(t, err) {
 			return
 		}
-		defer func() { _ = out.Close() }()
+		defer out.Close()
 
 		errc := make(chan error, 2)
 		go func() {
@@ -97,7 +97,7 @@ func TestForceHTTP1(t *testing.T) {
 	}))
 
 	var protocol string
-	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		protocol = r.Proto
 	}))
 

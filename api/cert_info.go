@@ -6,9 +6,8 @@ import (
 	"github.com/golang/groupcache/lru"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/pomerium/pomerium/pkg/cryptutil"
-
 	pb "github.com/pomerium/cli/proto"
+	"github.com/pomerium/pomerium/pkg/cryptutil"
 )
 
 func withCertInfo(cache *lru.Cache, records []*pb.Record) []*pb.Record {

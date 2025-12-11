@@ -63,7 +63,7 @@ func (cmd *apiCmd) makeConfigPath() error {
 	return os.MkdirAll(path.Dir(cmd.configPath), 0o700)
 }
 
-func (cmd *apiCmd) exec(c *cobra.Command, args []string) error {
+func (cmd *apiCmd) exec(c *cobra.Command, _ []string) error {
 	var err error
 	if err = cmd.makeConfigPath(); err != nil {
 		return fmt.Errorf("config %s: %w", cmd.configPath, err)

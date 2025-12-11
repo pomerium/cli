@@ -111,7 +111,7 @@ func tunnelAcceptLoop(ctx context.Context, id string, li net.Listener, tun Tunne
 		bo.Reset()
 
 		go func(conn net.Conn) {
-			defer func() { _ = conn.Close() }()
+			defer conn.Close()
 
 			cEvt := evt.withPeer(conn)
 			err := tun.Run(ctx, conn, cEvt)

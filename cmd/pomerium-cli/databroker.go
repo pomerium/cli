@@ -55,12 +55,12 @@ func dbCommand() *dbCmd {
 	}
 	cmd.PersistentPreRunE = cmd.parse
 	flags := cmd.PersistentFlags()
-	flags.BoolVar(&cmd.Options.InsecureSkipVerify, "insecure-skip-verify", false, "skip TLS verification")
-	flags.StringVar(&cmd.Options.CA, "ca", "", "base64 encoded CA PEM cert")
-	flags.StringVar(&cmd.Options.CAFile, "ca-file", "", "CA PEM cert")
-	flags.StringVar(&cmd.Options.OverrideCertificateName, "cert-name-override", "", "override server cert name")
-	flags.DurationVar(&cmd.Options.RequestTimeout, "timeout", time.Second*5, "request timeout")
-	flags.BytesBase64Var(&cmd.Options.SignedJWTKey, "shared-secret", nil, "shared secret to access databroker")
+	flags.BoolVar(&cmd.InsecureSkipVerify, "insecure-skip-verify", false, "skip TLS verification")
+	flags.StringVar(&cmd.CA, "ca", "", "base64 encoded CA PEM cert")
+	flags.StringVar(&cmd.CAFile, "ca-file", "", "CA PEM cert")
+	flags.StringVar(&cmd.OverrideCertificateName, "cert-name-override", "", "override server cert name")
+	flags.DurationVar(&cmd.RequestTimeout, "timeout", time.Second*5, "request timeout")
+	flags.BytesBase64Var(&cmd.SignedJWTKey, "shared-secret", nil, "shared secret to access databroker")
 	_ = cmd.MarkPersistentFlagRequired("shared-secret")
 
 	flags.StringVar(&cmd.serviceURL, "service-url", "http://localhost:5443", "databroker service url")
@@ -103,13 +103,13 @@ func dbSetCommand(parent *dbCmd) *cobra.Command {
 	return &cmd.Command
 }
 
-func (cmd *dbCmd) parse(c *cobra.Command, args []string) error {
+func (cmd *dbCmd) parse(_ *cobra.Command, _ []string) error {
 	u, err := url.Parse(cmd.serviceURL)
 	if err != nil {
 		return fmt.Errorf("parsing service url %s: %w", cmd.serviceURL, err)
 	}
-	cmd.Options.Address = u
-	cmd.Options.ServiceName = "databroker"
+	cmd.Address = u
+	cmd.ServiceName = "databroker"
 	return nil
 }
 
@@ -127,9 +127,9 @@ func (cmd *dbGetCmd) exec(c *cobra.Command, args []string) error {
 	client := databroker.NewDataBrokerServiceClient(conn)
 
 	cfg := new(pb.Config)
-	any := protoutil.NewAny(cfg)
+	a := protoutil.NewAny(cfg)
 	resp, err := client.Get(ctx, &databroker.GetRequest{
-		Type: any.GetTypeUrl(),
+		Type: a.GetTypeUrl(),
 		Id:   args[0],
 	})
 	if err != nil {
@@ -146,7 +146,7 @@ func (cmd *dbGetCmd) exec(c *cobra.Command, args []string) error {
 		return nil
 	}
 
-	if err := os.WriteFile(cmd.outputPath, []byte(txt), 0600); err != nil {
+	if err := os.WriteFile(cmd.outputPath, []byte(txt), 0o600); err != nil {
 		return fmt.Errorf("writing to %s: %w", cmd.outputPath, err)
 	}
 
@@ -179,12 +179,12 @@ func (cmd *dbSetCmd) exec(c *cobra.Command, args []string) error {
 
 	client := databroker.NewDataBrokerServiceClient(conn)
 
-	any := protoutil.NewAny(cfg)
+	a := protoutil.NewAny(cfg)
 	resp, err := client.Put(ctx, &databroker.PutRequest{
 		Records: []*databroker.Record{{
-			Type: any.GetTypeUrl(),
+			Type: a.GetTypeUrl(),
 			Id:   args[0],
-			Data: any,
+			Data: a,
 		}},
 	})
 	if err != nil {

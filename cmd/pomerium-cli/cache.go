@@ -32,7 +32,7 @@ var cacheClearCmd = &cobra.Command{
 var cacheLocationCmd = &cobra.Command{
 	Use:   "location",
 	Short: "print the cache location",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		root, err := cache.RootPath()
 		if err != nil {
 			return err
@@ -95,7 +95,7 @@ func loadCachedCredential(serverURL string) (*ExecCredential, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = f.Close() }()
+	defer f.Close()
 
 	var creds ExecCredential
 	err = json.NewDecoder(f).Decode(&creds)
@@ -124,7 +124,7 @@ func saveCachedCredential(serverURL string, creds *ExecCredential) error {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Dir(fn), 0o755)
+	err = os.MkdirAll(filepath.Dir(fn), 0o700)
 	if err != nil {
 		return fmt.Errorf("failed to create cache directory: %w", err)
 	}
@@ -167,5 +167,5 @@ func cacheLastURL(rawServerURL string) {
 		return
 	}
 
-	_ = os.WriteFile(fn, []byte(rawServerURL), 0o644)
+	_ = os.WriteFile(fn, []byte(rawServerURL), 0o600)
 }

@@ -57,7 +57,7 @@ func (tun *Tunnel) RunListener(ctx context.Context, listenerAddress string) erro
 	if err != nil {
 		return err
 	}
-	defer func() { _ = li.Close() }()
+	defer li.Close()
 	log.Ctx(ctx).Info().Str("addr", li.Addr().String()).Msg("started tcp listener")
 
 	go func() {
@@ -90,9 +90,9 @@ func (tun *Tunnel) RunListener(ctx context.Context, listenerAddress string) erro
 		bo.Reset()
 
 		go func(conn net.Conn) {
-			defer func() { _ = c.Close() }()
+			defer conn.Close()
 
-			err := tun.Run(ctx, c, LogEvents())
+			err := tun.Run(ctx, conn, LogEvents())
 			if err != nil {
 				log.Ctx(ctx).Error().Err(err).Msg("error serving local connection")
 			}

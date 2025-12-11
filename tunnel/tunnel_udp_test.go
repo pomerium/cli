@@ -40,7 +40,7 @@ func TestUDPSessionManager(t *testing.T) {
 
 		in, brw, err := w.(http.Hijacker).Hijack()
 		require.NoError(t, err)
-		defer func() { _ = in.Close() }()
+		defer in.Close()
 
 		payload, err := readUDPCapsuleDatagram(quicvarint.NewReader(in))
 		require.NoError(t, err)

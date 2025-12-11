@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 
-	pb "github.com/pomerium/cli/proto"
 	"google.golang.org/protobuf/proto"
+
+	pb "github.com/pomerium/cli/proto"
 )
 
 type listenerStatusEntry struct {

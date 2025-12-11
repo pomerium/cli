@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 )
 
+// IsCertstoreSupported indicates that the cert store is not supported.
 var IsCertstoreSupported = false
 
 // loadCert is a stub that always returns an error, for builds where this

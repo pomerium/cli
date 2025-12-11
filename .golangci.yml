@@ -1,0 +1,53 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gocheckcompilerdirectives
+    - goprintffuncname
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - nolintlint
+    - revive
+    - staticcheck
+    - unconvert
+    - unused
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - errcheck
+          - gosec
+          - staticcheck
+          - unused
+        path: _test\.go$
+      - linters:
+          - revive
+        source: "package api"
+      - linters:
+          - gosec
+        text: "(G304|G112):"
+  settings:
+    errcheck:
+      exclude-functions:
+        - (*golang.org/x/net/http2.ClientConn).Close
+formatters:
+  enable:
+    - gci
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/pomerium)
+      custom-order: true

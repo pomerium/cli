@@ -39,7 +39,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
         with:
-          go-version: 1.24.x
+          go-version-file: .tool-versions
 
       - name: Build and archive
         id: build
@@ -85,7 +85,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c
         with:
-          go-version: 1.24.x
+          go-version-file: .tool-versions
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
@@ -172,7 +172,7 @@ jobs:
         run: |
           echo "release=${VERSION#v}" >> $GITHUB_OUTPUT
         env:
-          VERSION: '${{ github.event.release.tag_name }}'
+          VERSION: "${{ github.event.release.tag_name }}"
 
       - name: trigger mac signed and notarized builds
         uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697
