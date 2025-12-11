@@ -27,11 +27,11 @@ func (s *server) listLocked(sel *pb.Selector) ([]*pb.Record, error) {
 	var records []*pb.Record
 	var err error
 	if sel.GetAll() {
-		records, err = s.config.listAll(), nil
+		records, err = s.listAll(), nil
 	} else if len(sel.GetIds()) > 0 {
-		records, err = s.config.listByIDs(sel.GetIds())
+		records, err = s.listByIDs(sel.GetIds())
 	} else if len(sel.GetTags()) > 0 {
-		records, err = s.config.listByTags(sel.GetTags())
+		records, err = s.listByTags(sel.GetTags())
 	} else {
 		return nil, status.Error(codes.InvalidArgument, "either all, ids or tags filter must be specified")
 	}
@@ -59,12 +59,12 @@ func (s *server) Delete(_ context.Context, sel *pb.Selector) (*pb.DeleteRecordsR
 	}
 
 	for _, id := range ids {
-		if err = s.config.delete(id); err != nil {
+		if err = s.delete(id); err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	}
 
-	if err := s.config.save(s.ConfigProvider); err != nil {
+	if err := s.save(s.ConfigProvider); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -86,18 +86,18 @@ func (s *server) Upsert(_ context.Context, r *pb.Record) (*pb.Record, error) {
 		}
 		r.Conn.ClientCert.Info = info
 	}
-	if err := s.config.clearTags(r); err != nil {
+	if err := s.clearTags(r); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	s.config.upsert(r)
-	if err := s.config.save(s.ConfigProvider); err != nil {
+	s.upsert(r)
+	if err := s.save(s.ConfigProvider); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return r, nil
 }
 
-func (s *server) Export(ctx context.Context, req *pb.ExportRequest) (*pb.ConfigData, error) {
+func (s *server) Export(_ context.Context, req *pb.ExportRequest) (*pb.ConfigData, error) {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -126,16 +126,16 @@ func (s *server) Import(_ context.Context, req *pb.ImportRequest) (*pb.ImportRes
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	if err := s.config.save(s.ConfigProvider); err != nil {
+	if err := s.save(s.ConfigProvider); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.ImportResponse{}, nil
 }
 
-func (s *server) GetTags(_ context.Context, req *pb.GetTagsRequest) (*pb.GetTagsResponse, error) {
+func (s *server) GetTags(_ context.Context, _ *pb.GetTagsRequest) (*pb.GetTagsResponse, error) {
 	s.RLock()
 	defer s.RUnlock()
 
-	return &pb.GetTagsResponse{Tags: s.config.getTags()}, nil
+	return &pb.GetTagsResponse{Tags: s.getTags()}, nil
 }

@@ -32,7 +32,8 @@ func appendProto(evt *zerolog.Event, key string, obj interface{}) *zerolog.Event
 	return evt.RawJSON(key, data)
 }
 
-func UnaryLog(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+// UnaryLog is a unary interceptor that logs requests.
+func UnaryLog(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 	var evt *zerolog.Event
 
 	res, err := handler(ctx, req)
@@ -52,7 +53,7 @@ func UnaryLog(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, 
 
 // SentryErrorLog spools gRPC errors to Sentry
 func SentryErrorLog(client *sentry.Client) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		res, err := handler(ctx, req)
 		if status.Code(err) != codes.OK {
 			var data json.RawMessage
@@ -61,9 +62,9 @@ func SentryErrorLog(client *sentry.Client) grpc.UnaryServerInterceptor {
 			}
 			_ = client.CaptureEvent(&sentry.Event{
 				Message: fmt.Sprintf("gRPC method %s error %v", info.FullMethod, status.Code(err)),
-				Extra: map[string]interface{}{
+				Extra: map[string]any{
 					"error":   err,
-					"request": json.RawMessage(data),
+					"request": data,
 				},
 			}, nil, nil)
 		}

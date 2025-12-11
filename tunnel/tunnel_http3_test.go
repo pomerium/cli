@@ -188,7 +188,7 @@ func TestUDPTunnelViaHTTP3(t *testing.T) {
 			TLSConfig: &tls.Config{
 				Certificates: []tls.Certificate{cert},
 			},
-			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Alt-Svc", `h3=":`+proxyPort+`"`)
 				w.WriteHeader(http.StatusNoContent)
 			}),

@@ -74,7 +74,7 @@ func (p *Portal) listRoutesWithCachedJWT(ctx context.Context, serverURL *url.URL
 func (p *Portal) listRoutesWithNewJWT(ctx context.Context, serverURL *url.URL) ([]Route, error) {
 	cacheKey := jwt.CacheKeyForHost(serverURL.Host, p.cfg.tlsConfig)
 
-	rawJWT, err := p.authClient.GetJWT(ctx, serverURL, func(s string) {})
+	rawJWT, err := p.authClient.GetJWT(ctx, serverURL, func(_ string) {})
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving JWT: %w", err)
 	}

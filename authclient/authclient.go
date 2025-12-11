@@ -28,6 +28,7 @@ func New(options ...Option) *AuthClient {
 	}
 }
 
+// CheckBearerToken checks that a bearer token is valid.
 func (client *AuthClient) CheckBearerToken(ctx context.Context, serverURL *url.URL, bearerToken string) error {
 	browserURL := getBrowserURL(serverURL)
 	dst := browserURL.ResolveReference(&url.URL{
@@ -63,7 +64,7 @@ func (client *AuthClient) GetJWT(ctx context.Context, serverURL *url.URL, onOpen
 	if err != nil {
 		return "", fmt.Errorf("failed to start listener: %w", err)
 	}
-	defer func() { _ = li.Close() }()
+	defer li.Close()
 
 	incomingJWT := make(chan string)
 	eg, ctx := errgroup.WithContext(ctx)
@@ -92,7 +93,7 @@ func (client *AuthClient) GetJWT(ctx context.Context, serverURL *url.URL, onOpen
 func (client *AuthClient) runHTTPServer(ctx context.Context, li net.Listener, incomingJWT chan string) error {
 	var srv *http.Server
 	srv = &http.Server{
-		BaseContext: func(li net.Listener) context.Context {
+		BaseContext: func(_ net.Listener) context.Context {
 			return ctx
 		},
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

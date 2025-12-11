@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// ParseURLs parses tcp and udp URLs.
 func ParseURLs(destination string, pomeriumURL string) (destinationAddr string, proxyURL *url.URL, err error) {
 	if strings.Contains(destination, "://") {
 		destinationURL, err := url.Parse(destination)

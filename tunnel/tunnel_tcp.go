@@ -39,7 +39,7 @@ func (tun *Tunnel) pickTCPTunneler(ctx context.Context) TCPTunneler {
 			ForceAttemptHTTP2: true,
 			TLSClientConfig:   tun.cfg.tlsConfig,
 		}),
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 	}
@@ -55,7 +55,7 @@ func (tun *Tunnel) pickTCPTunneler(ctx context.Context) TCPTunneler {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to make probe request, falling back to http1")
 		return fallback
 	}
-	res.Body.Close()
+	_ = res.Body.Close()
 
 	if v := res.Header.Get("Alt-Svc"); strings.Contains(v, "h3") {
 		log.Ctx(ctx).Info().Msg("using http3")

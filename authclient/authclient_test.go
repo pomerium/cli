@@ -36,7 +36,7 @@ func TestAuthClient(t *testing.T) {
 				_, _ = w.Write([]byte(r.FormValue("pomerium_redirect_uri")))
 			})
 			srv := &http.Server{
-				BaseContext: func(li net.Listener) context.Context {
+				BaseContext: func(_ net.Listener) context.Context {
 					return ctx
 				},
 				Handler: h,

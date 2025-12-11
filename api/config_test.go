@@ -13,7 +13,7 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	cfg := NewConfig()
+	cfg := newConfig()
 
 	assert.Empty(t, cfg.getTags())
 	assert.Empty(t, cfg.listAll())
@@ -41,7 +41,7 @@ func TestConfig(t *testing.T) {
 }
 
 func TestTags(t *testing.T) {
-	cfg := NewConfig()
+	cfg := newConfig()
 
 	require.Empty(t, cfg.getTags())
 	require.Empty(t, cfg.listAll())
@@ -64,7 +64,7 @@ func TestTags(t *testing.T) {
 }
 
 func TestAssignID(t *testing.T) {
-	cfg := NewConfig()
+	cfg := newConfig()
 
 	assert.Empty(t, cfg.getTags())
 	assert.Empty(t, cfg.listAll())

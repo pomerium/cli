@@ -44,7 +44,7 @@ var proxyCmd = &cobra.Command{
 	Short:  "creates a https proxy that proxies certain domains via a TCP tunnel through Pomerium",
 	Args:   cobra.ExactArgs(0),
 	Hidden: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		proxy := goproxy.NewProxyHttpServer()
 
 		domainRegexes, err := makeDomainRegexes()
@@ -147,7 +147,7 @@ func newTCPTunnel(dstHost string, specificPomeriumURL string) (*tunnel.Tunnel, e
 	), nil
 }
 
-func hijackProxyConnect(req *http.Request, client net.Conn, ctx *goproxy.ProxyCtx) {
+func hijackProxyConnect(req *http.Request, client net.Conn, _ *goproxy.ProxyCtx) {
 	dst := req.RequestURI
 	defer client.Close()
 	tun, err := newTCPTunnel(dst, proxyCmdOptions.pomeriumURL)

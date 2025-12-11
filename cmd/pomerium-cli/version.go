@@ -12,7 +12,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "version",
 	Long:  `Print the cli version.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		rootCmd.SetArgs([]string{"--version"})
 		_ = rootCmd.Execute()
 	},

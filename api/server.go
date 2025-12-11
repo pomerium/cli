@@ -114,6 +114,7 @@ func withDefaultConfigProvider() ServerOption {
 	}
 }
 
+// WithBrowserCommand sts the browser config for the server.
 func WithBrowserCommand(cmd string) ServerOption {
 	return func(s *server) error {
 		s.browserCmd = cmd
@@ -121,6 +122,7 @@ func WithBrowserCommand(cmd string) ServerOption {
 	}
 }
 
+// WithServiceAccount sets the service account for the server.
 func WithServiceAccount(serviceAccount string) ServerOption {
 	return func(s *server) error {
 		s.serviceAccount = serviceAccount
@@ -128,6 +130,7 @@ func WithServiceAccount(serviceAccount string) ServerOption {
 	}
 }
 
+// WithServiceAccountFile sets the service account file for the server.
 func WithServiceAccountFile(serviceAccountFile string) ServerOption {
 	return func(s *server) error {
 		s.serviceAccountFile = serviceAccountFile

@@ -57,9 +57,7 @@ func (t *http1tunneler) TunnelTCP(
 	if err != nil {
 		return fmt.Errorf("http/1: failed to establish connection to proxy: %w", err)
 	}
-	defer func() {
-		_ = remote.Close()
-	}()
+	defer remote.Close()
 	if done := ctx.Done(); done != nil {
 		go func() {
 			<-done
@@ -77,9 +75,7 @@ func (t *http1tunneler) TunnelTCP(
 	if err != nil {
 		return fmt.Errorf("http/1: failed to read HTTP response: %w", err)
 	}
-	defer func() {
-		_ = res.Body.Close()
-	}()
+	defer res.Body.Close()
 
 	err = httpStatusCodeToError(res.StatusCode)
 	if err != nil {
@@ -128,7 +124,7 @@ func (t *http1tunneler) TunnelUDP(
 	if err != nil {
 		return fmt.Errorf("http/1: failed to establish connection to proxy: %w", err)
 	}
-	defer func() { _ = remote.Close() }()
+	defer remote.Close()
 	context.AfterFunc(ctx, func() { _ = remote.Close() })
 
 	dstHost, dstPort, err := net.SplitHostPort(t.cfg.dstHost)
@@ -171,9 +167,7 @@ func (t *http1tunneler) TunnelUDP(
 	if err != nil {
 		return fmt.Errorf("http/1: failed to read HTTP response: %w", err)
 	}
-	defer func() {
-		_ = res.Body.Close()
-	}()
+	defer res.Body.Close()
 
 	err = httpStatusCodeToError(res.StatusCode)
 	if err != nil {

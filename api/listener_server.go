@@ -6,17 +6,16 @@ import (
 	"io"
 	"net"
 
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/rs/zerolog/log"
-
 	pb "github.com/pomerium/cli/proto"
 )
 
-func (s *server) Update(ctx context.Context, req *pb.ListenerUpdateRequest) (*pb.ListenerStatusResponse, error) {
+func (s *server) Update(_ context.Context, req *pb.ListenerUpdateRequest) (*pb.ListenerStatusResponse, error) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -183,7 +182,7 @@ func (s *server) StatusUpdates(req *pb.StatusUpdatesRequest, upd pb.Listener_Sta
 	return nil
 }
 
-func (s *server) GetStatus(ctx context.Context, sel *pb.Selector) (*pb.ListenerStatusResponse, error) {
+func (s *server) GetStatus(_ context.Context, sel *pb.Selector) (*pb.ListenerStatusResponse, error) {
 	s.RLock()
 	defer s.RUnlock()
 

@@ -32,19 +32,18 @@ var kubernetesCmd = &cobra.Command{
 var kubernetesFlushCredentialsCmd = &cobra.Command{
 	Use:   "flush-credentials [API Server URL]",
 	Short: "clear the kubernetes credentials for the given URL to force a new login",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			return clearAllCachedCredentials()
-		} else {
-			return clearCachedCredential(args[0])
 		}
+		return clearCachedCredential(args[0])
 	},
 }
 
 var kubernetesExecCredentialCmd = &cobra.Command{
 	Use:   "exec-credential",
 	Short: "run the kubernetes credential plugin for use with kubectl",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		if len(args) < 1 {
 			return fmt.Errorf("server url is required")
 		}
@@ -76,7 +75,7 @@ var kubernetesExecCredentialCmd = &cobra.Command{
 			return nil
 		}
 
-		rawJWT, err := ac.GetJWT(context.Background(), serverURL, func(s string) {})
+		rawJWT, err := ac.GetJWT(context.Background(), serverURL, func(_ string) {})
 		if err != nil {
 			fatalf("%s", err)
 		}

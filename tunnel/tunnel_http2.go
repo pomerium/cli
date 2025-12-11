@@ -42,7 +42,7 @@ func (t *http2tunneler) TunnelTCP(
 	if err != nil {
 		return fmt.Errorf("http/2: failed to establish connection to proxy: %w", err)
 	}
-	defer func() { _ = raw.Close() }()
+	defer raw.Close()
 
 	remote, ok := raw.(*tls.Conn)
 	if !ok {

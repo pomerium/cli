@@ -18,7 +18,7 @@ func (f FileConfigProvider) Load() ([]byte, error) {
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}
-	defer func() { _ = fd.Close() }()
+	defer fd.Close()
 	return io.ReadAll(io.LimitReader(fd, maxConfigFileBytes))
 }
 

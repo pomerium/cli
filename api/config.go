@@ -12,21 +12,18 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/pomerium/pomerium/pkg/protoutil"
-
 	pb "github.com/pomerium/cli/proto"
+	"github.com/pomerium/pomerium/pkg/protoutil"
 )
 
-var (
-	errTagIndexInconsistent = errors.New("tag index inconsistent. this is a bug")
-)
+var errTagIndexInconsistent = errors.New("tag index inconsistent. this is a bug")
 
 type config struct {
 	byID  map[string]*pb.Record
 	byTag map[string]map[string]*pb.Record
 }
 
-func NewConfig() *config {
+func newConfig() *config {
 	return &config{
 		byID:  make(map[string]*pb.Record),
 		byTag: make(map[string]map[string]*pb.Record),
@@ -39,20 +36,20 @@ func loadConfig(ls ConfigProvider) (*config, error) {
 		return nil, fmt.Errorf("load: %w", err)
 	}
 
-	cfg := NewConfig()
+	cfg := newConfig()
 
 	if len(data) == 0 {
 		return cfg, nil
 	}
 
-	any := new(anypb.Any)
+	a := new(anypb.Any)
 	opts := protojson.UnmarshalOptions{DiscardUnknown: true}
-	if err = opts.Unmarshal(data, any); err != nil {
+	if err = opts.Unmarshal(data, a); err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	records := new(pb.Records)
-	if err = anypb.UnmarshalTo(any, records, proto.UnmarshalOptions{}); err != nil {
+	if err = anypb.UnmarshalTo(a, records, proto.UnmarshalOptions{}); err != nil {
 		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
@@ -69,8 +66,8 @@ func (cfg *config) save(ls ConfigProvider) error {
 		records = append(records, rec)
 	}
 
-	any := protoutil.NewAny(&pb.Records{Records: records})
-	data, err := protojson.MarshalOptions{}.Marshal(any)
+	a := protoutil.NewAny(&pb.Records{Records: records})
+	data, err := protojson.MarshalOptions{}.Marshal(a)
 	if err != nil {
 		return fmt.Errorf("marshal: %w", err)
 	}
@@ -108,7 +105,7 @@ func (cfg *config) clearTags(r *pb.Record) error {
 }
 
 func (cfg *config) upsert(r *pb.Record) {
-	var id = r.GetId()
+	id := r.GetId()
 	if r.Id == nil {
 		id = uuid.NewString()
 		r.Id = &id

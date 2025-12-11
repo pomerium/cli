@@ -7,19 +7,18 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/pomerium/pomerium/pkg/protoutil"
-
 	pb "github.com/pomerium/cli/proto"
+	"github.com/pomerium/pomerium/pkg/protoutil"
 )
 
 func importRecords(dst *config, req *pb.ImportRequest) error {
-	any := new(anypb.Any)
-	if err := protojson.Unmarshal(req.Data, any); err != nil {
+	a := new(anypb.Any)
+	if err := protojson.Unmarshal(req.Data, a); err != nil {
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 
 	records := new(pb.Records)
-	if err := anypb.UnmarshalTo(any, records, proto.UnmarshalOptions{}); err != nil {
+	if err := anypb.UnmarshalTo(a, records, proto.UnmarshalOptions{}); err != nil {
 		return fmt.Errorf("unmarshal to: %w", err)
 	}
 
@@ -43,6 +42,6 @@ func exportRecords(recs []*pb.Record, removeTags bool, opts protojson.MarshalOpt
 		}
 	}
 
-	any := protoutil.NewAny(rec)
-	return opts.Marshal(any)
+	a := protoutil.NewAny(rec)
+	return opts.Marshal(a)
 }

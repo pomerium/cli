@@ -58,7 +58,8 @@ func TestUpsertLoadSave(t *testing.T) {
 				Ids: ids,
 			}, "tags": {
 				Tags: []string{"one"},
-			}}
+			},
+		}
 		for label, s := range selectors {
 			recs, err := cfg.List(ctx, s)
 			if assert.NoError(t, err, label) && assert.NotNil(t, recs, label) {
@@ -191,7 +192,8 @@ KSwExwUr94Fr+qoXl/okwJY=
 			Ids: ids,
 		}, "tags": {
 			Tags: []string{"one"},
-		}}
+		},
+	}
 	t.Run("check cert info", func(t *testing.T) {
 		for label, s := range selectors {
 			recs, err := cfg.List(ctx, s)
@@ -215,7 +217,7 @@ func TestExportImport(t *testing.T) {
 	srv, err := api.NewServer(ctx, api.WithConfigProvider(new(api.MemCP)))
 	require.NoError(t, err, "load empty config")
 
-	var testRecords = []*pb.Record{
+	testRecords := []*pb.Record{
 		{
 			Tags: []string{"one"},
 			Conn: &pb.Connection{

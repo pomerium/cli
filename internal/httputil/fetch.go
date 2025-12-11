@@ -29,7 +29,7 @@ func Fetch(ctx context.Context, tlsConfig *tls.Config, req *http.Request) ([]byt
 	if err != nil {
 		return nil, fmt.Errorf("failed to get url: %w", err)
 	}
-	defer func() { _ = res.Body.Close() }()
+	defer res.Body.Close()
 
 	switch res.StatusCode {
 	case http.StatusUnauthorized,
