@@ -535,6 +535,8 @@ github.com/moby/sys/userns v0.1.0 h1:tVLXkFOxVu9A64/yh59slHVv9ahO9UIev4JZusOLG/g
 github.com/moby/sys/userns v0.1.0/go.mod h1:IHUYgu/kao6N8YZlp9Cf444ySSvCmDlmzUcYfDHOl28=
 github.com/moby/term v0.5.0 h1:xt8Q1nalod/v7BqbG21f8mQPqH+xAaC9C3N3wfWbVP0=
 github.com/moby/term v0.5.0/go.mod h1:8FzsFHVUBGZdbDsJw/ot+X+d5HLUbvklYLJ9uGfcI3Y=
+github.com/modelcontextprotocol/go-sdk v1.2.0 h1:Y23co09300CEk8iZ/tMxIX1dVmKZkzoSBZOpJwUnc/s=
+github.com/modelcontextprotocol/go-sdk v1.2.0/go.mod h1:6fM3LCm3yV7pAs8isnKLn07oKtB0MP9LHd3DfAcKw10=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
@@ -579,8 +581,8 @@ github.com/pomerium/datasource v0.18.2-0.20251220150830-b9e09c3e90f2 h1:lnasz7vP
 github.com/pomerium/datasource v0.18.2-0.20251220150830-b9e09c3e90f2/go.mod h1:XUplV02NH4mjZ/TPoPdMxikM1Sp8iyk3YJE3NyrhtFc=
 github.com/pomerium/envoy-custom v1.36.4-rc3 h1:VCJN03YO1KGz3oVR3Y8+FNIF82CbxdVaeBOgwJcESoQ=
 github.com/pomerium/envoy-custom v1.36.4-rc3/go.mod h1:+wpbZvum83bq/OD4cp9/8IZiMV6boBkwDhlFPLOoWoI=
-github.com/pomerium/pomerium v0.30.7-0.20251227223433-7430333a6948 h1:DIsZzRl68E+wc95XZrpvQOMHlmHnC6TTV7Otrx2rnto=
-github.com/pomerium/pomerium v0.30.7-0.20251227223433-7430333a6948/go.mod h1:Qz6bPkxvVklsoE6OT+CJY77yOGfdoV96EUyyWfzNO3M=
+github.com/pomerium/pomerium v0.30.7-0.20251229230027-f5198e79f46c h1:jeMRX1izAhVur0RAt5iGmSTsjMlxPUrYAd9HRK/HYg0=
+github.com/pomerium/pomerium v0.30.7-0.20251229230027-f5198e79f46c/go.mod h1:jWG82zt28Y2jtGa5KEkZBg2oUf+FrlxCx5TVEFYXs8M=
 github.com/pomerium/protoutil v0.0.0-20251201162221-d34540764f26 h1:Fd5IvAaWkSfOotf8MjxYf5eGYVu83wAr9PgFiF6sqo4=
 github.com/pomerium/protoutil v0.0.0-20251201162221-d34540764f26/go.mod h1:P04B/0fQffoCKSxnnfiMEJlyuyUC/R7ZRUuJW6g0ETo=
 github.com/pomerium/webauthn v0.0.0-20251219160836-0697b748f9e6 h1:cjWl5VTWtEZDIPAKBT4SK2uHaDZ1hbrIwlXTR5v8f4g=
