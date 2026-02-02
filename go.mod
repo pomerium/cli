@@ -13,7 +13,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
-	github.com/pomerium/pomerium v0.32.1-0.20260128223246-01640c3b3fcb
+	github.com/pomerium/pomerium v0.32.1-0.20260130180242-f0c3c14740a9
 	github.com/quic-go/quic-go v0.58.0
 	github.com/rs/zerolog v1.34.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -38,6 +38,7 @@ require (
 	filippo.io/bigmod v0.0.3 // indirect
 	filippo.io/csrf v0.2.1 // indirect
 	filippo.io/keygen v0.0.0-20250626140535-790df0a991a0 // indirect
+	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/VictoriaMetrics/fastcache v1.13.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/caddyserver/certmagic v0.25.1 // indirect
