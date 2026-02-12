@@ -33,6 +33,10 @@ linters:
           - revive
         source: "package api"
       - linters:
+          - revive
+        source: "^package (httputil|version)$"
+        text: "var-naming: avoid package names that conflict with Go standard library package names"
+      - linters:
           - gosec
         text: "(G304|G112):"
   settings:
