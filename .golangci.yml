@@ -34,7 +34,7 @@ linters:
         source: "package api"
       - linters:
           - revive
-        path: ^(internal/httputil/transport\.go|version/version_test\.go)$
+        source: "^package (httputil|version)$"
         text: "var-naming: avoid package names that conflict with Go standard library package names"
       - linters:
           - gosec
