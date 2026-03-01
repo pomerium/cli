@@ -1,4 +1,4 @@
-FROM golang:1.26.0-bookworm@sha256:eae3cdfa040d0786510a5959d36a836978724d03b34a166ba2e0e198baac9196 as build
+FROM golang:1.26.0-bookworm@sha256:2a0ba12e116687098780d3ce700f9ce3cb340783779646aafbabed748fa6677c as build
 WORKDIR /go/src/github.com/pomerium/cli
 
 # cache depedency downloads
@@ -9,7 +9,7 @@ COPY . .
 # build
 RUN make build
 
-FROM gcr.io/distroless/base-debian12:debug@sha256:e8075f7da06319e4ac863d31fa11354003c809ef9f1b52fe32ef39e876ac16c5
+FROM gcr.io/distroless/base-debian12:debug@sha256:1f8759794cab46f0673e14afc03e3623cbd803b683abf7e3143fd041cc2e89f7
 WORKDIR /pomerium
 COPY --from=build /go/src/github.com/pomerium/cli/bin/* /bin/
 ENTRYPOINT [ "/bin/pomerium-cli" ]
