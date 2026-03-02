@@ -5,9 +5,9 @@ go 1.26.0
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/dunglas/httpsfv v1.1.0
-	github.com/elazarl/goproxy v1.8.0
-	github.com/getsentry/sentry-go v0.42.0
-	github.com/go-chi/chi/v5 v5.2.4
+	github.com/elazarl/goproxy v1.8.2
+	github.com/getsentry/sentry-go v0.43.0
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
 	github.com/google/go-cmp v0.7.0
@@ -21,10 +21,10 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/volatiletech/null/v9 v9.0.0
 	golang.org/x/crypto v0.48.0
-	golang.org/x/net v0.49.0
+	golang.org/x/net v0.51.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.41.0
-	google.golang.org/grpc v1.78.0
+	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -55,7 +55,7 @@ require (
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
-	github.com/cncf/xds/go v0.0.0-20251022180443-0feb69152e9f // indirect
+	github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 // indirect
 	github.com/coreos/go-oidc/v3 v3.17.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.36.0 // indirect
