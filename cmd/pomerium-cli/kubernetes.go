@@ -115,7 +115,7 @@ func parseToken(rawjwt string) (*ExecCredential, error) {
 
 	return &ExecCredential{
 		TypeMeta: TypeMeta{
-			APIVersion: "client.authentication.k8s.io/v1beta1",
+			APIVersion: "client.authentication.k8s.io/v1",
 			Kind:       "ExecCredential",
 		},
 		Status: &ExecCredentialStatus{
