@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -25,7 +24,11 @@ var cacheClearCmd = &cobra.Command{
 	Use:   "clear",
 	Short: "clear the cache",
 	RunE: func(_ *cobra.Command, _ []string) error {
-		return cache.Clear()
+		root, err := cache.RootPath()
+		if err != nil {
+			return err
+		}
+		return cache.Clear(root)
 	},
 }
 
@@ -60,21 +63,11 @@ func cachedCredentialPath(serverURL string) (string, error) {
 }
 
 func clearAllCachedCredentials() error {
-	cache, err := cache.ExecCredentialsPath()
+	cacheDir, err := cache.ExecCredentialsPath()
 	if err != nil {
 		return err
 	}
-	return filepath.Walk(cache, func(p string, fi fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if fi.IsDir() {
-			return nil
-		}
-
-		return os.Remove(p)
-	})
+	return cache.Clear(cacheDir)
 }
 
 func clearCachedCredential(serverURL string) error {

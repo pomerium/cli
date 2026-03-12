@@ -2,17 +2,34 @@
 package cache
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 )
 
-// Clear clears the cache.
-func Clear() error {
-	root, err := RootPath()
+// Clear clears the directory of all files and directories.
+// The directory itself is not removed.
+func Clear(dir string) error {
+	root, err := os.OpenRoot(dir)
+	if os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	fs, err := fs.ReadDir(root.FS(), ".")
 	if err != nil {
 		return err
 	}
-	return os.RemoveAll(root)
+
+	for _, f := range fs {
+		err = root.RemoveAll(f.Name())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // RootPath returns the root cache path.

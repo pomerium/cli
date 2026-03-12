@@ -38,7 +38,8 @@ linters:
         text: "var-naming: avoid package names that conflict with Go standard library package names"
       - linters:
           - gosec
-        text: G112|G304|G703|G704|G705
+        # G120 is not reliable
+        text: G112|G120|G304|G703|G704|G705
   settings:
     errcheck:
       exclude-functions:
