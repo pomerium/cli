@@ -13,7 +13,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
-	github.com/pomerium/pomerium v0.32.1-0.20260317224044-0b4631bf0633
+	github.com/pomerium/pomerium v0.32.1-0.20260319205915-0b904a0ef087
 	github.com/quic-go/quic-go v0.59.0
 	github.com/rs/zerolog v1.34.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -24,7 +24,7 @@ require (
 	golang.org/x/net v0.51.0
 	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.42.0
-	google.golang.org/grpc v1.79.1
+	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11
 )
 
