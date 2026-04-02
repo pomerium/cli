@@ -5,8 +5,8 @@ go 1.26.0
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/dunglas/httpsfv v1.1.0
-	github.com/elazarl/goproxy v1.8.2
-	github.com/getsentry/sentry-go v0.43.0
+	github.com/elazarl/goproxy v1.8.3
+	github.com/getsentry/sentry-go v0.44.1
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
