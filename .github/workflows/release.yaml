@@ -124,10 +124,12 @@ jobs:
           echo "pkgversion=$(echo  ${TAG#v} | tr '-' '~')" >> $GITHUB_OUTPUT
 
       - name: Install Cloudsmith CLI
+        if: "!contains(steps.tagName.outputs.tag, '-rc')"
         run: |
           pip3 install cloudsmith-cli
 
       - name: Publish to Cloudsmith
+        if: "!contains(steps.tagName.outputs.tag, '-rc')"
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         working-directory: dist/
