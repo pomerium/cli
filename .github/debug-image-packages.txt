@@ -1,0 +1,11 @@
+bash
+ca-certificates
+curl
+dnsutils
+iproute2
+iputils-ping
+jq
+lsof
+netcat-openbsd
+openssl
+procps

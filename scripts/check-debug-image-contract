@@ -1,0 +1,111 @@
+#!/bin/bash
+set -euo pipefail
+
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/.."
+packages_file="${project_root}/.github/debug-image-packages.txt"
+runtime_dockerfile="${project_root}/Dockerfile"
+debug_dockerfile="${project_root}/Dockerfile.debug"
+release_runtime_dockerfile="${project_root}/Dockerfile.release"
+release_debug_dockerfile="${project_root}/Dockerfile.release.debug"
+install_debug_tools="${project_root}/scripts/install-debug-tools.sh"
+docker_main_workflow="${project_root}/.github/workflows/docker-main.yaml"
+release_workflow="${project_root}/.github/workflows/release.yaml"
+test_workflow="${project_root}/.github/workflows/test.yaml"
+goreleaser_config="${project_root}/goreleaser.yaml"
+
+require_file() {
+    local file="${1:?file is required}"
+
+    if [[ ! -f "$file" ]]; then
+        echo "missing file: ${file}" >&2
+        exit 1
+    fi
+}
+
+require_contains() {
+    local file="${1:?file is required}"
+    local expected="${2:?expected text is required}"
+
+    if ! grep -Fq "$expected" "$file"; then
+        echo "missing text in ${file}: ${expected}" >&2
+        exit 1
+    fi
+}
+
+require_line() {
+    local file="${1:?file is required}"
+    local expected="${2:?expected text is required}"
+
+    if ! grep -Fqx "$expected" "$file"; then
+        echo "missing line in ${file}: ${expected}" >&2
+        exit 1
+    fi
+}
+
+for file in \
+    "$packages_file" \
+    "$runtime_dockerfile" \
+    "$debug_dockerfile" \
+    "$release_runtime_dockerfile" \
+    "$release_debug_dockerfile" \
+    "$install_debug_tools" \
+    "$docker_main_workflow" \
+    "$release_workflow" \
+    "$test_workflow" \
+    "$goreleaser_config"; do
+    require_file "$file"
+done
+
+debug_base_line="$(grep -F "FROM debian:bookworm-slim@sha256:" "$debug_dockerfile")"
+
+echo "checking shared debug package list"
+required_packages=()
+while IFS= read -r package; do
+    required_packages+=("$package")
+done < "$packages_file"
+if [[ "${#required_packages[@]}" -eq 0 ]]; then
+    echo "empty package list: ${packages_file}" >&2
+    exit 1
+fi
+for package in "${required_packages[@]}"; do
+    require_line "$packages_file" "$package"
+done
+
+echo "checking runtime image definitions"
+require_contains "$runtime_dockerfile" "FROM gcr.io/distroless/static:latest@sha256:47b2d72ff90843eb8a768b5c2f89b40741843b639d065b9b937b07cd59b479c6"
+require_contains "$release_runtime_dockerfile" "FROM gcr.io/distroless/static:latest@sha256:47b2d72ff90843eb8a768b5c2f89b40741843b639d065b9b937b07cd59b479c6"
+
+echo "checking debug image definitions"
+for file in "$debug_dockerfile" "$release_debug_dockerfile"; do
+    require_contains "$file" "$debug_base_line"
+    require_contains "$file" "COPY .github/debug-image-packages.txt /tmp/debug-image-packages.txt"
+    require_contains "$file" "COPY scripts/install-debug-tools.sh /usr/local/bin/install-debug-tools"
+    require_contains "$file" "/usr/local/bin/install-debug-tools /tmp/debug-image-packages.txt"
+done
+
+echo "checking branch workflow coverage"
+require_contains "$docker_main_workflow" "platforms: linux/amd64,linux/arm64"
+require_contains "$docker_main_workflow" "./scripts/check-debug-image-contract"
+require_contains "$docker_main_workflow" "file: ./Dockerfile"
+require_contains "$docker_main_workflow" "file: ./Dockerfile.debug"
+require_contains "$docker_main_workflow" "prefix=debug-"
+
+echo "checking release workflow coverage"
+require_contains "$release_workflow" "./scripts/check-debug-image-contract"
+require_contains "$release_workflow" "docker manifest create -a pomerium/cli:debug-latest"
+require_contains "$release_workflow" "docker manifest push pomerium/cli:debug-latest"
+
+echo "checking release publish configuration"
+for image in \
+    "pomerium/cli:debug-amd64-{{ .Tag }}" \
+    "pomerium/cli:debug-arm64v8-{{ .Tag }}" \
+    'name_template: "pomerium/cli:debug-{{ .Tag }}"' \
+    ".github/debug-image-packages.txt" \
+    "scripts/install-debug-tools.sh"; do
+    require_contains "$goreleaser_config" "$image"
+done
+
+echo "checking pr validation coverage"
+require_contains "$test_workflow" "./scripts/check-debug-image-contract"
+
+echo "debug image contract checks passed"

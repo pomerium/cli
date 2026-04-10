@@ -6,6 +6,25 @@ The Pomerium Command Line Client (CLI) is a client-side helper application for [
 
 Installation instructions are available in the [Pomerium Docs](https://www.pomerium.com/docs/deploy/clients#install-pomerium-cli-and-desktop).
 
+## Container Images
+
+Published runtime container tags keep the existing tag names.
+
+Published debug container tags use the `debug-<tag>` form. The branch publish flow emits `debug-main` and `debug-sha-*` siblings, and releases emit `debug-v<version>` plus `debug-latest` for the latest stable release.
+
+CLI debug images use `debian:bookworm-slim` and preinstall a baseline troubleshooting toolbox:
+
+- `bash`
+- `ca-certificates`
+- `curl`
+- `dig`, `host`, and `nslookup`
+- `ip`, `ping`, and `ss`
+- `jq`
+- `lsof`
+- `nc`
+- `openssl`
+- `ps`
+
 ## Usage
 
 The two CLI operations are:

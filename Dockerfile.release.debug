@@ -1,0 +1,9 @@
+FROM debian:bookworm-slim@sha256:4724b8cc51e33e398f0e2e15e18d5ec2851ff0c2280647e1310bc1642182655d
+ARG DEBIAN_FRONTEND=noninteractive
+WORKDIR /pomerium
+COPY .github/debug-image-packages.txt /tmp/debug-image-packages.txt
+COPY scripts/install-debug-tools.sh /usr/local/bin/install-debug-tools
+RUN chmod 0755 /usr/local/bin/install-debug-tools \
+    && /usr/local/bin/install-debug-tools /tmp/debug-image-packages.txt
+COPY pomerium-cli /bin/pomerium-cli
+ENTRYPOINT [ "/bin/pomerium-cli" ]

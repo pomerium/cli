@@ -37,6 +37,20 @@ jobs:
             type=sha,priority=1000
             type=ref,event=branch
 
+      - name: docker meta debug
+        id: meta-debug
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
+        with:
+          images: pomerium/cli
+          flavor: |
+            prefix=debug-
+          tags: |
+            type=sha,priority=1000
+            type=ref,event=branch
+
+      - name: Check Debug Image Contract
+        run: ./scripts/check-debug-image-contract
+
       - name: Docker Publish - Main
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294
         with:
@@ -46,3 +60,13 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Docker Publish - Debug
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294
+        with:
+          context: .
+          file: ./Dockerfile.debug
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta-debug.outputs.tags }}
+          labels: ${{ steps.meta-debug.outputs.labels }}

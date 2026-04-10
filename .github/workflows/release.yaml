@@ -82,6 +82,9 @@ jobs:
         with:
           fetch-depth: 0 # GoReleaser needs commit history for changelog
 
+      - name: Check Debug Image Contract
+        run: ./scripts/check-debug-image-contract
+
       - name: Set up Go
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
@@ -156,6 +159,9 @@ jobs:
         run: |
           docker manifest create -a pomerium/cli:latest pomerium/cli:amd64-${{ steps.tagName.outputs.tag }} pomerium/cli:arm64v8-${{ steps.tagName.outputs.tag }}
           docker manifest push pomerium/cli:latest
+
+          docker manifest create -a pomerium/cli:debug-latest pomerium/cli:debug-amd64-${{ steps.tagName.outputs.tag }} pomerium/cli:debug-arm64v8-${{ steps.tagName.outputs.tag }}
+          docker manifest push pomerium/cli:debug-latest
 
   finish:
     runs-on: ubuntu-latest

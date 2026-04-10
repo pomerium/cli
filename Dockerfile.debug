@@ -1,0 +1,20 @@
+FROM golang:1.26.2-bookworm@sha256:4f4ab2c90005e7e63cb631f0b4427f05422f241622ee3ec4727cc5febbf83e34 AS build
+WORKDIR /go/src/github.com/pomerium/cli
+
+# cache dependency downloads
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+
+# build
+RUN make build
+
+FROM debian:bookworm-slim@sha256:4724b8cc51e33e398f0e2e15e18d5ec2851ff0c2280647e1310bc1642182655d
+ARG DEBIAN_FRONTEND=noninteractive
+WORKDIR /pomerium
+COPY .github/debug-image-packages.txt /tmp/debug-image-packages.txt
+COPY scripts/install-debug-tools.sh /usr/local/bin/install-debug-tools
+RUN chmod 0755 /usr/local/bin/install-debug-tools \
+    && /usr/local/bin/install-debug-tools /tmp/debug-image-packages.txt
+COPY --from=build /go/src/github.com/pomerium/cli/bin/pomerium-cli /bin/pomerium-cli
+ENTRYPOINT [ "/bin/pomerium-cli" ]

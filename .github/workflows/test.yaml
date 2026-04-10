@@ -28,6 +28,8 @@ jobs:
           restore-keys: ${{ runner.os }}-go-bin
       - name: test
         run: make test
+      - name: check debug image contract
+        run: ./scripts/check-debug-image-contract
 
   precommit:
     runs-on: ubuntu-latest

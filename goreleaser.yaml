@@ -100,10 +100,47 @@ dockers:
       - "--label=repository=http://github.com/pomerium/cli"
       - "--label=homepage=https://www.pomerium.com"
 
+  - image_templates:
+      - "pomerium/cli:debug-amd64-{{ .Tag }}"
+    dockerfile: Dockerfile.release.debug
+    extra_files:
+      - .github/debug-image-packages.txt
+      - scripts/install-debug-tools.sh
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "--label=repository=http://github.com/pomerium/cli"
+      - "--label=homepage=https://www.pomerium.com"
+
   - goarch: arm64
     image_templates:
       - "pomerium/cli:arm64v8-{{ .Tag }}"
     dockerfile: Dockerfile.release
+    use: buildx
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "--label=repository=http://github.com/pomerium/cli"
+      - "--label=homepage=https://www.pomerium.com"
+
+  - goarch: arm64
+    image_templates:
+      - "pomerium/cli:debug-arm64v8-{{ .Tag }}"
+    dockerfile: Dockerfile.release.debug
+    extra_files:
+      - .github/debug-image-packages.txt
+      - scripts/install-debug-tools.sh
     use: buildx
     build_flag_templates:
       - "--pull"
@@ -121,3 +158,8 @@ docker_manifests:
     image_templates:
       - pomerium/cli:arm64v8-{{ .Tag }}
       - pomerium/cli:amd64-{{ .Tag }}
+
+  - name_template: "pomerium/cli:debug-{{ .Tag }}"
+    image_templates:
+      - pomerium/cli:debug-arm64v8-{{ .Tag }}
+      - pomerium/cli:debug-amd64-{{ .Tag }}
