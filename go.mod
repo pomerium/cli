@@ -13,7 +13,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
-	github.com/pomerium/pomerium v0.32.5-rc.1.0.20260417203220-54aab0ae8f98
+	github.com/pomerium/pomerium v0.32.5-rc.1.0.20260420132419-4967e164476a
 	github.com/quic-go/quic-go v0.59.0
 	github.com/rs/zerolog v1.35.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -147,6 +147,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	gocloud.dev v0.45.0 // indirect
+	golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93 // indirect
 	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/term v0.42.0 // indirect
