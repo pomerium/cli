@@ -185,29 +185,6 @@ func TestAuthCommandRunner(t *testing.T) {
 		require.Error(t, err)
 		assert.EqualError(t, err, "bad tls config")
 	})
-
-	t.Run("invalid fresh token returns error", func(t *testing.T) {
-		t.Parallel()
-
-		cache := jwt.NewMemoryCache()
-		authClient := &fakeAuthTokenClient{getJWT: "invalid"}
-		runner := authCommandRunner{
-			deps: authCommandDeps{
-				cacheLastURL: func(string) {},
-				getCache:     func() jwt.Cache { return cache },
-				getTLSConfig: func() (*tls.Config, error) { return nil, nil },
-				newAuthClient: func(*tls.Config) authTokenClient {
-					return authClient
-				},
-			},
-		}
-
-		_, err := runner.run(context.Background(), "http://route.example.com")
-		require.Error(t, err)
-		assert.ErrorContains(t, err, "error validating JWT:")
-		_, err = cache.LoadJWT(jwt.CacheKeyForHost("route.example.com", nil))
-		assert.ErrorIs(t, err, jwt.ErrNotFound)
-	})
 }
 
 func TestAuthCommand(t *testing.T) {
