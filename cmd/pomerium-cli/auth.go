@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"time"
 
 	"github.com/spf13/cobra"
 
@@ -112,25 +111,10 @@ func (r authCommandRunner) run(ctx context.Context, rawServerURL string) (string
 	if err != nil {
 		return "", fmt.Errorf("error retrieving JWT: %w", err)
 	}
-	if err := validateRawJWT(rawJWT); err != nil {
-		return "", fmt.Errorf("error validating JWT: %w", err)
-	}
 
 	if err := cache.StoreJWT(cacheKey, rawJWT); err != nil {
 		return "", fmt.Errorf("error storing JWT: %w", err)
 	}
 
 	return rawJWT, nil
-}
-
-func validateRawJWT(rawJWT string) error {
-	// Keep token parsing consistent with the existing CLI auth flows.
-	creds, err := parseToken(rawJWT)
-	if err != nil {
-		return err
-	}
-	if expiresAt := creds.Status.ExpirationTimestamp; !expiresAt.IsZero() && expiresAt.Before(time.Now()) {
-		return jwt.ErrExpired
-	}
-	return nil
 }
