@@ -62,9 +62,11 @@ func SentryErrorLog(client *sentry.Client) grpc.UnaryServerInterceptor {
 			}
 			_ = client.CaptureEvent(&sentry.Event{
 				Message: fmt.Sprintf("gRPC method %s error %v", info.FullMethod, status.Code(err)),
-				Extra: map[string]any{
-					"error":   err,
-					"request": data,
+				Contexts: map[string]sentry.Context{
+					"grpc": {
+						"error":   err,
+						"request": data,
+					},
 				},
 			}, nil, nil)
 		}
