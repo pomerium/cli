@@ -35,10 +35,11 @@ func (t *http2tunneler) TunnelTCP(
 		return fmt.Errorf("%w: http2 requires TLS", errUnsupported)
 	}
 
-	cfg := t.cfg.tlsConfig.Clone()
-	cfg.NextProtos = []string{"h2"}
-
-	raw, err := (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", t.cfg.proxyHost)
+	proxyURL, err := resolveEdgeProxy(t.cfg)
+	if err != nil {
+		return fmt.Errorf("http/2: failed to resolve forward proxy: %w", err)
+	}
+	raw, err := dialEdgeTLS(ctx, t.cfg, proxyURL, []string{"h2"})
 	if err != nil {
 		return fmt.Errorf("http/2: failed to establish connection to proxy: %w", err)
 	}
@@ -46,7 +47,7 @@ func (t *http2tunneler) TunnelTCP(
 
 	remote, ok := raw.(*tls.Conn)
 	if !ok {
-		return fmt.Errorf("http/2: unexpected connection type returned from dial: %T", raw)
+		return fmt.Errorf("%w: unexpected connection type returned from dial: %T", errUnsupported, raw)
 	}
 
 	protocol := remote.ConnectionState().NegotiatedProtocol

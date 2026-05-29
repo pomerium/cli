@@ -15,8 +15,9 @@ import (
 )
 
 var tcpCmdOptions struct {
-	listen      string
-	pomeriumURL string
+	listen       string
+	pomeriumURL  string
+	forwardProxy string
 }
 
 func init() {
@@ -28,6 +29,8 @@ func init() {
 		"local address to start a listener on")
 	flags.StringVar(&tcpCmdOptions.pomeriumURL, "pomerium-url", "",
 		"the URL of the pomerium server to connect to")
+	flags.StringVar(&tcpCmdOptions.forwardProxy, "forward-proxy", "",
+		"HTTP CONNECT or SOCKS5 forward proxy for the tunnel (host:port or URL); authoritative and ignores NO_PROXY. Without it, HTTP_PROXY/HTTPS_PROXY (honoring NO_PROXY) and ALL_PROXY apply.")
 	rootCmd.AddCommand(tcpCmd)
 }
 
@@ -65,6 +68,7 @@ var tcpCmd = &cobra.Command{
 			tunnel.WithServiceAccount(serviceAccountOptions.serviceAccount),
 			tunnel.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
 			tunnel.WithTLSConfig(tlsConfig),
+			tunnel.WithForwardProxy(tcpCmdOptions.forwardProxy),
 		)
 
 		if tcpCmdOptions.listen == "-" {

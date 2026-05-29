@@ -42,8 +42,24 @@ func (client *AuthClient) CheckBearerToken(ctx context.Context, serverURL *url.U
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+bearerToken)
 
-	_, err = httputil.Fetch(ctx, client.cfg.tlsConfig, req)
+	opts, err := client.fetchOpts(serverURL)
+	if err != nil {
+		return err
+	}
+	_, err = httputil.Fetch(ctx, client.cfg.tlsConfig, req, opts...)
 	return err
+}
+
+// fetchOpts resolves the forward proxy for serverURL, if any.
+func (client *AuthClient) fetchOpts(serverURL *url.URL) ([]httputil.FetchOption, error) {
+	proxyURL, err := httputil.ResolveProxy(client.cfg.forwardProxy, serverURL)
+	if err != nil {
+		return nil, err
+	}
+	if proxyURL == nil {
+		return nil, nil
+	}
+	return []httputil.FetchOption{httputil.WithProxyURL(proxyURL)}, nil
 }
 
 // GetJWT retrieves a JWT from Pomerium.
@@ -136,7 +152,11 @@ func (client *AuthClient) runOpenBrowser(ctx context.Context, li net.Listener, s
 		return err
 	}
 
-	bs, err := httputil.Fetch(ctx, client.cfg.tlsConfig, req)
+	opts, err := client.fetchOpts(serverURL)
+	if err != nil {
+		return err
+	}
+	bs, err := httputil.Fetch(ctx, client.cfg.tlsConfig, req, opts...)
 	if err != nil {
 		return err
 	}
