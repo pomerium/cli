@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"time"
@@ -43,7 +44,14 @@ func Fetch(ctx context.Context, tlsConfig *tls.Config, req *http.Request, opts .
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = tlsConfig
 	if cfg.proxyURL != nil {
-		transport.Proxy = func(*http.Request) (*url.URL, error) { return cfg.proxyURL, nil }
+		// Dial the proxy ourselves so the proxy hop's TLS is validated against
+		// system trust (matching the tunnel path), while the target's TLS still
+		// uses tlsConfig. Setting transport.Proxy would instead validate an https
+		// proxy against tlsConfig and re-read the proxy environment.
+		transport.Proxy = nil
+		transport.DialContext = func(ctx context.Context, _, addr string) (net.Conn, error) {
+			return DialThroughProxy(ctx, cfg.proxyURL, addr)
+		}
 	}
 	hc := &http.Client{
 		Transport: transport,

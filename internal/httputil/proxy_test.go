@@ -75,6 +75,29 @@ func TestResolveProxyRedactsCredentials(t *testing.T) {
 	assert.NotContains(t, err.Error(), "hunter2")
 }
 
+func TestValidateForwardProxyFlag(t *testing.T) {
+	// The explicit-flag validator must never consult the environment, otherwise
+	// env-proxy errors would surface at startup instead of at request time.
+	t.Setenv("HTTPS_PROXY", "http://env-proxy:3128")
+	t.Setenv("ALL_PROXY", "socks5://env-proxy:1080")
+
+	u, err := ValidateForwardProxyFlag("")
+	require.NoError(t, err)
+	assert.Nil(t, u, "empty flag is valid and must not resolve env proxies")
+
+	u, err = ValidateForwardProxyFlag("   ")
+	require.NoError(t, err)
+	assert.Nil(t, u, "whitespace flag is treated as empty")
+
+	u, err = ValidateForwardProxyFlag("proxy:8080")
+	require.NoError(t, err)
+	require.NotNil(t, u)
+	assert.Equal(t, "http://proxy:8080", u.String())
+
+	_, err = ValidateForwardProxyFlag("ftp://nope:21")
+	require.Error(t, err)
+}
+
 func TestDialThroughProxyHTTPConnect(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

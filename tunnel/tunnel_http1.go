@@ -52,12 +52,8 @@ func (t *http1tunneler) TunnelTCP(
 		return fmt.Errorf("http/1: failed to establish connection to proxy: %w", err)
 	}
 	defer remote.Close()
-	if done := ctx.Done(); done != nil {
-		go func() {
-			<-done
-			_ = remote.Close()
-		}()
-	}
+	stop := context.AfterFunc(ctx, func() { _ = remote.Close() })
+	defer stop()
 
 	err = req.Write(remote)
 	if err != nil {
@@ -116,7 +112,8 @@ func (t *http1tunneler) TunnelUDP(
 		return fmt.Errorf("http/1: failed to establish connection to proxy: %w", err)
 	}
 	defer remote.Close()
-	context.AfterFunc(ctx, func() { _ = remote.Close() })
+	stop := context.AfterFunc(ctx, func() { _ = remote.Close() })
+	defer stop()
 
 	dstHost, dstPort, err := net.SplitHostPort(t.cfg.dstHost)
 	if err != nil {

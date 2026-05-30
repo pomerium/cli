@@ -9,8 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
+	"github.com/pomerium/cli/internal/httputil"
 	"github.com/pomerium/cli/tunnel"
 )
 
@@ -44,6 +46,19 @@ var tcpCmd = &cobra.Command{
 			return err
 		}
 		cacheLastURL(proxyURL.String())
+
+		// Validate an explicit --forward-proxy before binding the listener so a
+		// bad value fails as a normal CLI error. Environment proxies are
+		// resolved later, at request time.
+		fwdProxyURL, err := httputil.ValidateForwardProxyFlag(tcpCmdOptions.forwardProxy)
+		if err != nil {
+			return err
+		}
+		if fwdProxyURL != nil {
+			log.Info().
+				Str("forward_proxy", fwdProxyURL.Redacted()).
+				Msg("routing tunnel and auth through forward proxy (--forward-proxy); HTTP/3 disabled")
+		}
 
 		var tlsConfig *tls.Config
 		if proxyURL.Scheme == "https" {

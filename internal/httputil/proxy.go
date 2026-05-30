@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -45,6 +46,16 @@ func ResolveProxy(override string, edge *url.URL) (*url.URL, error) {
 		noProxy = os.Getenv("no_proxy")
 	}
 	return (&httpproxy.Config{HTTPProxy: all, HTTPSProxy: all, NoProxy: noProxy}).ProxyFunc()(edge)
+}
+
+// ValidateForwardProxyFlag validates an explicit --forward-proxy value without
+// consulting the environment. An empty value is valid and returns (nil, nil);
+// the caller then falls back to environment-based resolution at request time.
+func ValidateForwardProxyFlag(raw string) (*url.URL, error) {
+	if raw = strings.TrimSpace(raw); raw == "" {
+		return nil, nil
+	}
+	return normalizeForwardProxy(raw)
 }
 
 // normalizeForwardProxy validates and normalizes an explicit --forward-proxy
@@ -91,10 +102,11 @@ func DialThroughProxy(ctx context.Context, proxyURL *url.URL, target string) (ne
 		if err != nil {
 			return nil, fmt.Errorf("failed to create socks5 dialer: %w", err)
 		}
-		if cd, ok := d.(proxy.ContextDialer); ok {
-			return cd.DialContext(ctx, "tcp", target)
+		cd, ok := d.(proxy.ContextDialer)
+		if !ok {
+			return nil, errors.New("socks5 dialer does not support context cancellation")
 		}
-		return d.Dial("tcp", target)
+		return cd.DialContext(ctx, "tcp", target)
 	case "http", "https", "":
 		return dialHTTPConnect(ctx, proxyURL, target)
 	default:
