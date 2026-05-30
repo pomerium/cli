@@ -79,6 +79,11 @@ func normalizeForwardProxy(override string) (*url.URL, error) {
 	if u.Hostname() == "" {
 		return nil, fmt.Errorf("forward proxy %q has no host", u.Redacted())
 	}
+	// A lone trailing slash (http://proxy:3128/) is harmless; normalize it away.
+	// Any other path, query, or fragment is still rejected.
+	if u.Path == "/" {
+		u.Path = ""
+	}
 	if u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
 		return nil, fmt.Errorf("forward proxy %q must not have a path, query, or fragment", u.Redacted())
 	}
