@@ -72,15 +72,8 @@ func fakeEdge(t *testing.T) (edgeAddr string, got <-chan string) {
 	return srv.Listener.Addr().String(), gotc
 }
 
-func clearProxyEnv(t *testing.T) {
-	t.Helper()
-	for _, k := range []string{"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "no_proxy", "all_proxy"} {
-		t.Setenv(k, "")
-	}
-}
-
-// runTCPTunnel drives one "HELLO WORLD" line through the tunnel and returns what
-// the backend received.
+// runTCPTunnel drives one "HELLO WORLD" line through the tunnel and asserts
+// the backend received it.
 func runTCPTunnel(t *testing.T, got <-chan string, opts ...Option) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -99,7 +92,7 @@ func runTCPTunnel(t *testing.T, got <-chan string, opts ...Option) {
 }
 
 func TestTunnelViaForwardProxyFlag(t *testing.T) {
-	clearProxyEnv(t)
+	testutil.ClearProxyEnv(t)
 	edge, got := fakeEdge(t)
 	proxy := testutil.NewConnectProxy(t)
 
@@ -116,7 +109,7 @@ func TestTunnelViaForwardProxyFlag(t *testing.T) {
 // that splices to the real loopback edge. NO_PROXY and override precedence at
 // the resolution layer are covered by TestResolveProxy.
 func TestTunnelHonorsEnvProxy(t *testing.T) {
-	clearProxyEnv(t)
+	testutil.ClearProxyEnv(t)
 	edge, got := fakeEdge(t)
 	proxy := testutil.NewConnectProxyTo(t, edge)
 	t.Setenv("HTTP_PROXY", "http://"+proxy.Addr)
@@ -129,7 +122,7 @@ func TestTunnelHonorsEnvProxy(t *testing.T) {
 }
 
 func TestTunnelFlagOverridesEnv(t *testing.T) {
-	clearProxyEnv(t)
+	testutil.ClearProxyEnv(t)
 	edge, got := fakeEdge(t)
 	envProxy := testutil.NewConnectProxyTo(t, edge)
 	flagProxy := testutil.NewConnectProxyTo(t, edge)
@@ -145,7 +138,7 @@ func TestTunnelFlagOverridesEnv(t *testing.T) {
 }
 
 func TestTunnelViaSOCKS5(t *testing.T) {
-	clearProxyEnv(t)
+	testutil.ClearProxyEnv(t)
 	edge, got := fakeEdge(t)
 	proxy := testutil.NewSOCKS5Proxy(t)
 
@@ -158,7 +151,7 @@ func TestTunnelViaSOCKS5(t *testing.T) {
 }
 
 func TestTunnelUnsupportedProxyScheme(t *testing.T) {
-	clearProxyEnv(t)
+	testutil.ClearProxyEnv(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -173,7 +166,7 @@ func TestTunnelUnsupportedProxyScheme(t *testing.T) {
 }
 
 func TestTunnelProxyCredentialsNotLogged(t *testing.T) {
-	clearProxyEnv(t)
+	testutil.ClearProxyEnv(t)
 	edge, got := fakeEdge(t)
 	proxy := testutil.NewConnectProxy(t)
 

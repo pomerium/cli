@@ -69,6 +69,14 @@ func newConnectProxy(t *testing.T, upstream string) *RecordingProxy {
 	return p
 }
 
+// ClearProxyEnv blanks every proxy environment variable for the test.
+func ClearProxyEnv(t *testing.T) {
+	t.Helper()
+	for _, k := range []string{"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "no_proxy", "all_proxy"} {
+		t.Setenv(k, "")
+	}
+}
+
 func (p *RecordingProxy) handleConnect(conn net.Conn) {
 	defer conn.Close()
 	p.conns.Add(1)
@@ -78,8 +86,10 @@ func (p *RecordingProxy) handleConnect(conn net.Conn) {
 	if err != nil {
 		return
 	}
+	var target string
 	if f := strings.Fields(line); len(f) >= 2 {
-		p.target.Store(f[1])
+		target = f[1]
+		p.target.Store(target)
 	}
 	for {
 		h, err := br.ReadString('\n')
@@ -96,7 +106,7 @@ func (p *RecordingProxy) handleConnect(conn net.Conn) {
 	}
 	_, _ = io.WriteString(conn, "HTTP/1.1 200 Connection established\r\n\r\n")
 
-	dst := p.Target()
+	dst := target
 	if p.upstream != "" {
 		dst = p.upstream
 	}

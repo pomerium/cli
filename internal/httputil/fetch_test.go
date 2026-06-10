@@ -23,11 +23,8 @@ import (
 	"github.com/pomerium/cli/internal/testutil"
 )
 
-// TestFetchHTTPSTargetThroughProxy proves the auth path reaches an https target
-// through a forward proxy with a single CONNECT hop, and that the target's TLS
-// is still validated against the edge tlsConfig (over the tunnel) rather than
-// skipped. It locks in the "no double-proxy, target TLS preserved" contract of
-// the custom DialContext.
+// One CONNECT hop to the target; the target's TLS is still validated against
+// tlsConfig over the tunnel.
 func TestFetchHTTPSTargetThroughProxy(t *testing.T) {
 	target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("hello through proxy"))
@@ -57,10 +54,8 @@ func TestFetchHTTPSTargetThroughProxy(t *testing.T) {
 	assert.Equal(t, targetURL.Host, proxy.Target())
 }
 
-// TestFetchProxyBasicAuth locks in that proxy credentials still reach the proxy
-// on the auth path. With transport.Proxy nil, net/http no longer injects
-// Proxy-Authorization, so the header must come from dialHTTPConnect using the
-// proxy URL's userinfo.
+// With transport.Proxy nil, net/http no longer injects Proxy-Authorization, so
+// the header must come from dialHTTPConnect using the proxy URL's userinfo.
 func TestFetchProxyBasicAuth(t *testing.T) {
 	target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("ok"))
@@ -86,11 +81,9 @@ func TestFetchProxyBasicAuth(t *testing.T) {
 	assert.Equal(t, want, proxy.ProxyAuth(), "proxy credentials must reach the proxy via CONNECT")
 }
 
-// TestFetchHTTPSProxyValidatesAgainstSystemTrust guards the auth-path trust fix:
-// an https forward proxy's certificate must be validated against system trust,
-// not the edge tlsConfig pool. The proxy cert here is trusted by the edge pool
-// (which would have satisfied the old transport.Proxy path) but not by system
-// trust, so the dial must fail with the system-trust error.
+// An https forward proxy is validated against system trust, not the edge
+// tlsConfig pool: the proxy cert here is trusted by the edge pool but not by
+// system trust, so the dial must fail.
 func TestFetchHTTPSProxyValidatesAgainstSystemTrust(t *testing.T) {
 	cert, leaf := selfSignedCert(t, "127.0.0.1")
 	proxyAddr := startTLSProxy(t, cert)

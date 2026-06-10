@@ -20,8 +20,7 @@ import (
 	"github.com/pomerium/cli/internal/testutil"
 )
 
-// TestCheckBearerTokenViaProxy verifies the auth path routes through a forward
-// proxy. Auth uses an HTTPS server so http.Transport issues a CONNECT.
+// Auth requests route through the forward proxy.
 func TestCheckBearerTokenViaProxy(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -36,8 +35,9 @@ func TestCheckBearerTokenViaProxy(t *testing.T) {
 
 	proxy := testutil.NewConnectProxy(t)
 
-	ac := New(WithForwardProxy(proxy.Addr))
-	ac.cfg.tlsConfig = &tls.Config{RootCAs: pool}
+	ac := New(
+		WithForwardProxy(proxy.Addr),
+		WithTLSConfig(&tls.Config{RootCAs: pool}))
 
 	serverURL, err := url.Parse(srv.URL)
 	require.NoError(t, err)

@@ -47,7 +47,7 @@ func (t *http1tunneler) TunnelTCP(
 	if err != nil {
 		return fmt.Errorf("http/1: failed to resolve forward proxy: %w", err)
 	}
-	remote, err := dialEdgeTLS(ctx, t.cfg, proxyURL, []string{"http/1.1"})
+	remote, err := dialEdgeTLS(ctx, t.cfg, proxyURL)
 	if err != nil {
 		return fmt.Errorf("http/1: failed to establish connection to proxy: %w", err)
 	}
@@ -104,10 +104,8 @@ func (t *http1tunneler) TunnelUDP(
 ) error {
 	eventSink.OnConnecting(ctx)
 
-	// UDP never traverses a forward proxy (TCP-only feature), so dial direct
-	// (nil proxyURL). nil nextProtos preserves the original UDP/MASQUE handshake,
-	// which did not pin ALPN (only the TCP CONNECT path negotiates http/1.1).
-	remote, err := dialEdgeTLS(ctx, t.cfg, nil, nil)
+	// UDP never traverses a forward proxy (TCP-only feature), so dial direct.
+	remote, err := dialEdgeTLS(ctx, t.cfg, nil)
 	if err != nil {
 		return fmt.Errorf("http/1: failed to establish connection to proxy: %w", err)
 	}

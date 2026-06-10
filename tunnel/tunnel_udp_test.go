@@ -77,7 +77,7 @@ func TestUDPSessionManager(t *testing.T) {
 
 	conn, err := net.ListenUDP("udp", localAddr)
 	require.NoError(t, err)
-	context.AfterFunc(ctx, func() { _ = conn.Close() })()
+	context.AfterFunc(ctx, func() { _ = conn.Close() })
 
 	n, err := conn.WriteToUDP([]byte("SEND HELLO WORLD"), tunnelAddr)
 	assert.Equal(t, 16, n)
@@ -98,11 +98,9 @@ func TestUDPSessionManager(t *testing.T) {
 	assert.NoError(t, err, "tunnel should shutdown cleanly")
 }
 
-// TestTunnelUDPIgnoresForwardProxy proves the forward proxy is TCP-only: with
-// HTTP_PROXY/HTTPS_PROXY set, a UDP tunnel still dials the edge directly and
-// never touches the proxy.
+// The forward proxy is TCP-only: a UDP tunnel dials the edge directly.
 func TestTunnelUDPIgnoresForwardProxy(t *testing.T) {
-	clearProxyEnv(t)
+	testutil.ClearProxyEnv(t)
 	proxy := testutil.NewConnectProxy(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -127,8 +125,7 @@ func TestTunnelUDPIgnoresForwardProxy(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	// Explicit forward proxy (not loopback-bypassed like env vars). TunnelUDP
-	// must ignore it entirely, so the proxy should never be dialed.
+	// an explicit flag proxy: env proxies would bypass a loopback edge.
 	tun := New(
 		WithDestinationHost("example.com:9999"),
 		WithProxyHost(srv.Listener.Addr().String()),
@@ -146,7 +143,7 @@ func TestTunnelUDPIgnoresForwardProxy(t *testing.T) {
 	require.NoError(t, err)
 	conn, err := net.ListenUDP("udp", localAddr)
 	require.NoError(t, err)
-	context.AfterFunc(ctx, func() { _ = conn.Close() })()
+	context.AfterFunc(ctx, func() { _ = conn.Close() })
 
 	_, err = conn.WriteToUDP([]byte("SEND HELLO WORLD"), tunnelAddr)
 	require.NoError(t, err)

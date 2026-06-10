@@ -26,10 +26,8 @@ func resolveEdgeProxy(cfg *config) (*url.URL, error) {
 
 // dialEdgeTLS establishes a connection to the Pomerium edge, routing through
 // proxyURL when non-nil, and TLS-wraps it when a tls config is configured.
-//
-// A nil nextProtos leaves the configured ALPN untouched (preserving the
-// behavior of the original tls.Dialer for callers that don't pin a protocol).
-func dialEdgeTLS(ctx context.Context, cfg *config, proxyURL *url.URL, nextProtos []string) (net.Conn, error) {
+// The config's ALPN is already pinned to http/1.1 by WithTLSConfig.
+func dialEdgeTLS(ctx context.Context, cfg *config, proxyURL *url.URL) (net.Conn, error) {
 	var raw net.Conn
 	var err error
 	if proxyURL == nil {
@@ -46,11 +44,8 @@ func dialEdgeTLS(ctx context.Context, cfg *config, proxyURL *url.URL, nextProtos
 	}
 
 	tlsCfg := cfg.tlsConfig.Clone()
-	if nextProtos != nil {
-		tlsCfg.NextProtos = nextProtos
-	}
-	// the old tls.Dialer derived ServerName from the dial address, so we must
-	// set it explicitly here for certificate verification to succeed.
+	// tls.Client does not derive ServerName from the dial address; set it or
+	// certificate verification fails.
 	if tlsCfg.ServerName == "" {
 		host, _, err := net.SplitHostPort(cfg.proxyHost)
 		if err != nil {

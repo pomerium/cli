@@ -32,7 +32,7 @@ func init() {
 	flags.StringVar(&tcpCmdOptions.pomeriumURL, "pomerium-url", "",
 		"the URL of the pomerium server to connect to")
 	flags.StringVar(&tcpCmdOptions.forwardProxy, "forward-proxy", "",
-		"HTTP CONNECT or SOCKS5 forward proxy for the tunnel (host:port or URL); authoritative and ignores NO_PROXY. Without it, HTTP_PROXY/HTTPS_PROXY (honoring NO_PROXY) and ALL_PROXY apply.")
+		"forward proxy for the tunnel and auth (host:port or http/https/socks5/socks5h URL); overrides proxy environment variables and ignores NO_PROXY")
 	rootCmd.AddCommand(tcpCmd)
 }
 

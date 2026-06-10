@@ -48,6 +48,27 @@ func ResolveProxy(override string, edge *url.URL) (*url.URL, error) {
 	return (&httpproxy.Config{HTTPProxy: all, HTTPSProxy: all, NoProxy: noProxy}).ProxyFunc()(edge)
 }
 
+// ProxyFetchOptions resolves the forward proxy for target and returns the
+// Fetch options that route requests through it. Plain-http targets with an
+// environment-resolved proxy return no options: the default transport already
+// proxies them in absolute form, which proxy ACLs commonly allow where a
+// CONNECT to port 80 is denied. That carve-out keeps the default transport's
+// env semantics for http targets (no ALL_PROXY, proxy TLS verified against
+// the request's tls config). An explicit override always applies.
+func ProxyFetchOptions(override string, target *url.URL) ([]FetchOption, error) {
+	if strings.TrimSpace(override) == "" && target.Scheme != "https" {
+		return nil, nil
+	}
+	proxyURL, err := ResolveProxy(override, target)
+	if err != nil {
+		return nil, err
+	}
+	if proxyURL == nil {
+		return nil, nil
+	}
+	return []FetchOption{WithProxyURL(proxyURL)}, nil
+}
+
 // ValidateForwardProxyFlag validates an explicit --forward-proxy value without
 // consulting the environment. An empty value is valid and returns (nil, nil);
 // the caller then falls back to environment-based resolution at request time.
@@ -60,15 +81,22 @@ func ValidateForwardProxyFlag(raw string) (*url.URL, error) {
 
 // normalizeForwardProxy validates and normalizes an explicit --forward-proxy
 // override: a bare host:port defaults to http, the scheme must be one we can
-// dial, and a host is required. Error messages use Redacted so any embedded
-// credentials never leak.
+// dial, and a host is required.
 func normalizeForwardProxy(override string) (*url.URL, error) {
 	if !strings.Contains(override, "://") {
 		override = "http://" + override
 	}
 	u, err := url.Parse(override)
 	if err != nil {
-		// the raw string may carry credentials, so don't echo it.
+		// url.Error echoes the raw URL and url.EscapeError echoes the bytes
+		// around a bad escape; either may carry credentials, so surface only a
+		// credential-free cause.
+		if ue, ok := errors.AsType[*url.Error](err); ok {
+			err = ue.Err
+		}
+		if _, ok := errors.AsType[url.EscapeError](err); ok {
+			err = errors.New("invalid percent-escape")
+		}
 		return nil, fmt.Errorf("invalid forward proxy: %w", err)
 	}
 	switch u.Scheme {
@@ -80,7 +108,6 @@ func normalizeForwardProxy(override string) (*url.URL, error) {
 		return nil, fmt.Errorf("forward proxy %q has no host", u.Redacted())
 	}
 	// A lone trailing slash (http://proxy:3128/) is harmless; normalize it away.
-	// Any other path, query, or fragment is still rejected.
 	if u.Path == "/" {
 		u.Path = ""
 	}
@@ -131,7 +158,7 @@ func dialHTTPConnect(ctx context.Context, proxyURL *url.URL, target string) (_ n
 
 	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", proxyAddr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to dial proxy: %w", err)
+		return nil, fmt.Errorf("failed to dial forward proxy: %w", err)
 	}
 	defer func() {
 		if retErr != nil {
@@ -153,8 +180,8 @@ func dialHTTPConnect(ctx context.Context, proxyURL *url.URL, target string) (_ n
 		conn = tc
 	}
 
-	// abort the CONNECT exchange on cancellation; stop() before a successful
-	// return so the deadline-cleared conn handed to the caller is never closed.
+	// abort the CONNECT exchange on cancellation; stop() detaches the conn from
+	// ctx before it is handed to the caller.
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	defer stop()
 
@@ -181,7 +208,7 @@ func dialHTTPConnect(ctx context.Context, proxyURL *url.URL, target string) (_ n
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("proxy CONNECT failed: %s", res.Status)
+		return nil, fmt.Errorf("forward proxy CONNECT failed: %s", res.Status)
 	}
 
 	if err := conn.SetDeadline(time.Time{}); err != nil {

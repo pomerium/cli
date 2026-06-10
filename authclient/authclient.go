@@ -52,14 +52,7 @@ func (client *AuthClient) CheckBearerToken(ctx context.Context, serverURL *url.U
 
 // fetchOpts resolves the forward proxy for serverURL, if any.
 func (client *AuthClient) fetchOpts(serverURL *url.URL) ([]httputil.FetchOption, error) {
-	proxyURL, err := httputil.ResolveProxy(client.cfg.forwardProxy, serverURL)
-	if err != nil {
-		return nil, err
-	}
-	if proxyURL == nil {
-		return nil, nil
-	}
-	return []httputil.FetchOption{httputil.WithProxyURL(proxyURL)}, nil
+	return httputil.ProxyFetchOptions(client.cfg.forwardProxy, serverURL)
 }
 
 // GetJWT retrieves a JWT from Pomerium.

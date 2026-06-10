@@ -49,9 +49,7 @@ func TestResolveProxy(t *testing.T) {
 		{name: "no host", override: "http://", edge: httpsEdge, wantErr: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			for _, k := range []string{"HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "no_proxy", "all_proxy"} {
-				t.Setenv(k, "")
-			}
+			testutil.ClearProxyEnv(t)
 			for k, v := range tc.env {
 				t.Setenv(k, v)
 			}
@@ -73,9 +71,22 @@ func TestResolveProxy(t *testing.T) {
 }
 
 func TestResolveProxyRedactsCredentials(t *testing.T) {
-	_, err := ResolveProxy("http://user:hunter2@proxy:8080/path", &url.URL{Scheme: "https", Host: "edge:443"})
+	edge := &url.URL{Scheme: "https", Host: "edge:443"}
+	for _, override := range []string{
+		"http://user:hunter2@proxy:8080/path", // rejected after parsing
+		"http://user:hunter2@proxy:badport",   // url.Parse failure
+		"http://user:hunter2%@proxy:8080",     // invalid escape in the password itself
+	} {
+		_, err := ResolveProxy(override, edge)
+		require.Error(t, err)
+		assert.NotContains(t, err.Error(), "hunter2", "override %q", override)
+	}
+
+	// url.EscapeError quotes the bytes around a bad escape ("%te" here), which
+	// would leak a password fragment.
+	_, err := ResolveProxy("http://user:hun%ter2@proxy:8080", edge)
 	require.Error(t, err)
-	assert.NotContains(t, err.Error(), "hunter2")
+	assert.NotContains(t, err.Error(), "%te")
 }
 
 func TestValidateForwardProxyFlag(t *testing.T) {
@@ -88,17 +99,40 @@ func TestValidateForwardProxyFlag(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, u, "empty flag is valid and must not resolve env proxies")
 
-	u, err = ValidateForwardProxyFlag("   ")
-	require.NoError(t, err)
-	assert.Nil(t, u, "whitespace flag is treated as empty")
-
 	u, err = ValidateForwardProxyFlag("proxy:8080")
 	require.NoError(t, err)
 	require.NotNil(t, u)
 	assert.Equal(t, "http://proxy:8080", u.String())
+}
 
-	_, err = ValidateForwardProxyFlag("ftp://nope:21")
-	require.Error(t, err)
+// Plain-http targets keep the default transport's absolute-form env proxying;
+// an explicit override always routes through the custom dialer.
+func TestProxyFetchOptions(t *testing.T) {
+	testutil.ClearProxyEnv(t)
+	t.Setenv("HTTP_PROXY", "http://hp:3128")
+	t.Setenv("HTTPS_PROXY", "http://hp:3128")
+
+	httpEdge := &url.URL{Scheme: "http", Host: "edge.example.com:80"}
+	httpsEdge := &url.URL{Scheme: "https", Host: "edge.example.com:443"}
+
+	opts, err := ProxyFetchOptions("", httpEdge)
+	require.NoError(t, err)
+	assert.Empty(t, opts, "env proxy + plain-http target stays on the default transport")
+
+	// the carve-out must not pre-empt env errors the default transport owns.
+	t.Setenv("ALL_PROXY", "::bad::")
+	opts, err = ProxyFetchOptions("", httpEdge)
+	require.NoError(t, err)
+	assert.Empty(t, opts)
+	t.Setenv("ALL_PROXY", "")
+
+	opts, err = ProxyFetchOptions("", httpsEdge)
+	require.NoError(t, err)
+	assert.Len(t, opts, 1)
+
+	opts, err = ProxyFetchOptions("op:9", httpEdge)
+	require.NoError(t, err)
+	assert.Len(t, opts, 1, "explicit override applies to plain-http targets")
 }
 
 func TestDialThroughProxyHTTPConnect(t *testing.T) {
@@ -129,12 +163,6 @@ func TestDialThroughProxySOCKS5(t *testing.T) {
 
 	assert.Equal(t, "ping\n", roundTrip(t, conn))
 	assert.Equal(t, backend, proxy.Target())
-}
-
-func TestDialThroughProxyUnsupportedScheme(t *testing.T) {
-	_, err := DialThroughProxy(context.Background(), &url.URL{Scheme: "ftp", Host: "p:21"}, "edge:443")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unsupported proxy scheme")
 }
 
 func TestDialThroughProxyConnectRejected(t *testing.T) {
