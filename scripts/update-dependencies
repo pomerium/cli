@@ -59,7 +59,10 @@ update-pomerium() {
 
 	require-command go
 
-	go get -u github.com/pomerium/pomerium@main
+	go get -u \
+		github.com/pomerium/pomerium@main \
+		github.com/pomerium/pomerium/pkg/grpc/config@main \
+		github.com/pomerium/pomerium/pkg/grpc/databroker@main
 	go mod tidy
 
 	popd
