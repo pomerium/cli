@@ -13,19 +13,19 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
-	github.com/pomerium/pomerium v0.32.5-rc.1.0.20260702222513-575769f49a38
-	github.com/pomerium/pomerium/pkg/grpc/config v0.0.0-20260702222513-575769f49a38
-	github.com/pomerium/pomerium/pkg/grpc/databroker v0.0.0-20260702222513-575769f49a38
+	github.com/pomerium/pomerium v0.32.5-rc.1.0.20260707215703-6d62baae72da
+	github.com/pomerium/pomerium/pkg/grpc/config v0.0.0-20260707215703-6d62baae72da
+	github.com/pomerium/pomerium/pkg/grpc/databroker v0.0.0-20260707215703-6d62baae72da
 	github.com/quic-go/quic-go v0.60.0
 	github.com/rs/zerolog v1.35.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/volatiletech/null/v9 v9.0.0
-	golang.org/x/crypto v0.53.0
-	golang.org/x/net v0.56.0
-	golang.org/x/sync v0.21.0
-	golang.org/x/sys v0.46.0
+	golang.org/x/crypto v0.54.0
+	golang.org/x/net v0.57.0
+	golang.org/x/sync v0.22.0
+	golang.org/x/sys v0.47.0
 	google.golang.org/grpc v1.82.0
 	google.golang.org/protobuf v1.36.11
 )
@@ -137,7 +137,7 @@ require (
 	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/tools v0.47.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/api v0.283.0 // indirect
