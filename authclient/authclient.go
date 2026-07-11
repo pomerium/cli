@@ -3,6 +3,8 @@ package authclient
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
@@ -10,6 +12,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync/atomic"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -60,19 +64,44 @@ func (client *AuthClient) GetJWT(ctx context.Context, serverURL *url.URL, onOpen
 		return strings.TrimSpace(string(rawJWTBytes)), nil
 	}
 
+	return client.getBrowserJWT(ctx, serverURL, nil, onOpenBrowser)
+}
+
+// GetBrowserJWT retrieves a new JWT through the interactive browser flow. It
+// deliberately ignores configured service accounts and does not consult a
+// token cache.
+func (client *AuthClient) GetBrowserJWT(
+	ctx context.Context,
+	serverURL *url.URL,
+	loginParams url.Values,
+	onOpenBrowser func(string),
+) (rawJWT string, err error) {
+	return client.getBrowserJWT(ctx, serverURL, loginParams, onOpenBrowser)
+}
+
+func (client *AuthClient) getBrowserJWT(
+	ctx context.Context,
+	serverURL *url.URL,
+	loginParams url.Values,
+	onOpenBrowser func(string),
+) (rawJWT string, err error) {
 	li, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", fmt.Errorf("failed to start listener: %w", err)
 	}
 	defer li.Close()
+	callbackPath, err := newBrowserJWTCallbackPath()
+	if err != nil {
+		return "", fmt.Errorf("failed to create browser callback: %w", err)
+	}
 
-	incomingJWT := make(chan string)
+	incomingJWT := make(chan string, 1)
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		return client.runHTTPServer(ctx, li, incomingJWT)
+		return client.runHTTPServer(ctx, li, callbackPath, incomingJWT)
 	})
 	eg.Go(func() error {
-		return client.runOpenBrowser(ctx, li, serverURL, onOpenBrowser)
+		return client.runOpenBrowser(ctx, li, callbackPath, serverURL, loginParams, onOpenBrowser)
 	})
 	eg.Go(func() error {
 		select {
@@ -90,30 +119,39 @@ func (client *AuthClient) GetJWT(ctx context.Context, serverURL *url.URL, onOpen
 	return rawJWT, nil
 }
 
-func (client *AuthClient) runHTTPServer(ctx context.Context, li net.Listener, incomingJWT chan string) error {
-	var srv *http.Server
-	srv = &http.Server{
+func newBrowserJWTCallbackPath() (string, error) {
+	var nonce [32]byte
+	if _, err := rand.Read(nonce[:]); err != nil {
+		return "", err
+	}
+	return "/callback/" + base64.RawURLEncoding.EncodeToString(nonce[:]), nil
+}
+
+func (client *AuthClient) runHTTPServer(
+	ctx context.Context,
+	li net.Listener,
+	callbackPath string,
+	incomingJWT chan<- string,
+) error {
+	srv := &http.Server{
+		ReadHeaderTimeout: 5 * time.Second,
 		BaseContext: func(_ net.Listener) context.Context {
 			return ctx
 		},
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			jwt := r.FormValue("pomerium_jwt")
-			if jwt == "" {
-				http.Error(w, "not found", http.StatusNotFound)
-				return
-			}
-			incomingJWT <- jwt
-
-			w.Header().Set("Content-Type", "text/plain")
-			_, _ = io.WriteString(w, "login complete, you may close this page")
-
+	}
+	srv.Handler = &browserJWTCallbackHandler{
+		ctx:          ctx,
+		expectedHost: li.Addr().String(),
+		expectedPath: callbackPath,
+		incomingJWT:  incomingJWT,
+		onAccepted: func() {
 			go func() { _ = srv.Shutdown(ctx) }()
-		}),
+		},
 	}
 	// shutdown the server when ctx is done.
 	go func() {
 		<-ctx.Done()
-		_ = srv.Shutdown(ctx)
+		_ = srv.Close()
 	}()
 	err := srv.Serve(li)
 	if err == http.ErrServerClosed {
@@ -122,13 +160,73 @@ func (client *AuthClient) runHTTPServer(ctx context.Context, li net.Listener, in
 	return err
 }
 
-func (client *AuthClient) runOpenBrowser(ctx context.Context, li net.Listener, serverURL *url.URL, onOpenBrowser func(string)) error {
+type browserJWTCallbackHandler struct {
+	ctx          context.Context
+	expectedHost string
+	expectedPath string
+	incomingJWT  chan<- string
+	onAccepted   func()
+	accepted     atomic.Bool
+}
+
+func (h *browserJWTCallbackHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Host != h.expectedHost || r.URL.EscapedPath() != h.expectedPath {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	query, err := url.ParseQuery(r.URL.RawQuery)
+	jwtValues, ok := query["pomerium_jwt"]
+	if err != nil || len(query) != 1 || !ok || len(jwtValues) != 1 || jwtValues[0] == "" {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if !h.accepted.CompareAndSwap(false, true) {
+		http.Error(w, "callback already consumed", http.StatusConflict)
+		return
+	}
+	select {
+	case h.incomingJWT <- jwtValues[0]:
+	case <-h.ctx.Done():
+		http.Error(w, "login canceled", http.StatusRequestTimeout)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = io.WriteString(w, "login complete, you may close this page")
+	if h.onAccepted != nil {
+		h.onAccepted()
+	}
+}
+
+func (client *AuthClient) runOpenBrowser(
+	ctx context.Context,
+	li net.Listener,
+	callbackPath string,
+	serverURL *url.URL,
+	loginParams url.Values,
+	onOpenBrowser func(string),
+) error {
 	browserURL := getBrowserURL(serverURL)
+	query := make(url.Values, len(loginParams)+1)
+	for key, values := range loginParams {
+		query[key] = append([]string(nil), values...)
+	}
+	// The callback is owned by this client. Never permit caller-supplied
+	// parameters to redirect the freshly issued credential elsewhere.
+	callbackURL := &url.URL{
+		Scheme: "http",
+		Host:   li.Addr().String(),
+		Path:   callbackPath,
+	}
+	query.Set("pomerium_redirect_uri", callbackURL.String())
 	dst := browserURL.ResolveReference(&url.URL{
-		Path: "/.pomerium/api/v1/login",
-		RawQuery: url.Values{
-			"pomerium_redirect_uri": {fmt.Sprintf("http://%s", li.Addr().String())},
-		}.Encode(),
+		Path:     "/.pomerium/api/v1/login",
+		RawQuery: query.Encode(),
 	})
 
 	req, err := http.NewRequest("GET", dst.String(), nil)
