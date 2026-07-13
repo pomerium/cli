@@ -11,6 +11,7 @@ type config struct {
 	serviceAccount     string
 	serviceAccountFile string
 	tlsConfig          *tls.Config
+	forwardProxy       string
 }
 
 func getConfig(options ...Option) *config {
@@ -35,6 +36,14 @@ func WithBrowserCommand(browserCommand string) Option {
 				return open.RunWith(rawURL, browserCommand)
 			}
 		}
+	}
+}
+
+// WithForwardProxy sets an explicit forward proxy override (host:port or URL).
+// An empty value falls back to the standard proxy environment variables.
+func WithForwardProxy(forwardProxy string) Option {
+	return func(cfg *config) {
+		cfg.forwardProxy = forwardProxy
 	}
 }
 

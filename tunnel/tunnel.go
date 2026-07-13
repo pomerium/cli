@@ -44,7 +44,8 @@ func New(options ...Option) *Tunnel {
 			authclient.WithBrowserCommand(cfg.browserConfig),
 			authclient.WithServiceAccount(cfg.serviceAccount),
 			authclient.WithServiceAccountFile(cfg.serviceAccountFile),
-			authclient.WithTLSConfig(cfg.tlsConfig)),
+			authclient.WithTLSConfig(cfg.tlsConfig),
+			authclient.WithForwardProxy(cfg.forwardProxy)),
 	}
 }
 

@@ -77,7 +77,7 @@ func TestUDPSessionManager(t *testing.T) {
 
 	conn, err := net.ListenUDP("udp", localAddr)
 	require.NoError(t, err)
-	context.AfterFunc(ctx, func() { _ = conn.Close() })()
+	context.AfterFunc(ctx, func() { _ = conn.Close() })
 
 	n, err := conn.WriteToUDP([]byte("SEND HELLO WORLD"), tunnelAddr)
 	assert.Equal(t, 16, n)
@@ -96,4 +96,67 @@ func TestUDPSessionManager(t *testing.T) {
 		err = nil
 	}
 	assert.NoError(t, err, "tunnel should shutdown cleanly")
+}
+
+// The forward proxy is TCP-only: a UDP tunnel dials the edge directly.
+func TestTunnelUDPIgnoresForwardProxy(t *testing.T) {
+	testutil.ClearProxyEnv(t)
+	proxy := testutil.NewConnectProxy(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	tunnelPort := testutil.GetPort(t)
+	localPort := testutil.GetPort(t)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Transfer-Encoding", "identity")
+		w.WriteHeader(200)
+		w.(http.Flusher).Flush()
+		in, brw, err := w.(http.Hijacker).Hijack()
+		require.NoError(t, err)
+		defer in.Close()
+		payload, err := readUDPCapsuleDatagram(quicvarint.NewReader(in))
+		require.NoError(t, err)
+		require.Equal(t, []byte("\x00SEND HELLO WORLD"), payload)
+		require.NoError(t, http3.WriteCapsule(quicvarint.NewWriter(brw), 0, []byte("\x00RECV HELLO WORLD")))
+		require.NoError(t, brw.Flush())
+		<-ctx.Done()
+	}))
+	defer srv.Close()
+
+	// an explicit flag proxy: env proxies would bypass a loopback edge.
+	tun := New(
+		WithDestinationHost("example.com:9999"),
+		WithProxyHost(srv.Listener.Addr().String()),
+		WithForwardProxy(proxy.Addr))
+
+	tunnelAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+tunnelPort)
+	require.NoError(t, err)
+	tunnelConn, err := net.ListenUDP("udp", tunnelAddr)
+	require.NoError(t, err)
+
+	tunErrC := make(chan error, 1)
+	go func() { tunErrC <- tun.RunUDPSessionManager(ctx, tunnelConn, LogEvents()) }()
+
+	localAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+localPort)
+	require.NoError(t, err)
+	conn, err := net.ListenUDP("udp", localAddr)
+	require.NoError(t, err)
+	context.AfterFunc(ctx, func() { _ = conn.Close() })
+
+	_, err = conn.WriteToUDP([]byte("SEND HELLO WORLD"), tunnelAddr)
+	require.NoError(t, err)
+
+	payload := make([]byte, maxUDPPacketSize)
+	n, _, err := conn.ReadFromUDP(payload)
+	require.NoError(t, err)
+	assert.Equal(t, []byte("RECV HELLO WORLD"), payload[:n])
+
+	assert.Zero(t, proxy.Conns(), "UDP tunnel must not use a forward proxy")
+
+	cancel()
+	if err := <-tunErrC; err != nil && !errors.Is(err, context.Canceled) {
+		t.Errorf("tunnel should shut down cleanly: %v", err)
+	}
 }
