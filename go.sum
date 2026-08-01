@@ -266,8 +266,8 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/ebitengine/purego v0.10.0 h1:QIw4xfpWT6GWTzaW5XEKy3HXoqrJGx1ijYHzTF0/ISU=
 github.com/ebitengine/purego v0.10.0/go.mod h1:iIjxzd6CiRiOG0UyXP+V1+jWqUXVjPKLAI0mRfJZTmQ=
-github.com/elazarl/goproxy v1.8.4 h1:tIHKhYHXf8gQracfoHl8Zy7PG/jhvmIMUR5j8OlPUIM=
-github.com/elazarl/goproxy v1.8.4/go.mod h1:b5xm6W48AUHNpRTCvlnd0YVh+JafCCtsLsJZvvNTz+E=
+github.com/elazarl/goproxy v1.8.5 h1:33R3Q6geBd2PHmjEI82s3dQWSoBKjTktg4YAFXutIoY=
+github.com/elazarl/goproxy v1.8.5/go.mod h1:b5xm6W48AUHNpRTCvlnd0YVh+JafCCtsLsJZvvNTz+E=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
@@ -292,8 +292,8 @@ github.com/fxamacker/cbor/v2 v2.9.2 h1:X4Ksno9+x3cz0TZv69ec1hxP/+tymuR8PXQJyDwfh
 github.com/fxamacker/cbor/v2 v2.9.2/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
 github.com/gaissmai/bart v0.26.1 h1:+w4rnLGNlA2GDVn382Tfe3jOsK5vOr5n4KmigJ9lbTo=
 github.com/gaissmai/bart v0.26.1/go.mod h1:GREWQfTLRWz/c5FTOsIw+KkscuFkIV5t8Rp7Nd1Td5c=
-github.com/getsentry/sentry-go v0.47.0 h1:AnSMSyrYA5qZCIN/2xpgAAwv63sVULV+vBq37ajouc8=
-github.com/getsentry/sentry-go v0.47.0/go.mod h1:h+b4VHpKnK7aUXB5wc+KDnPgp9ZtfliRD4eV85FbiSA=
+github.com/getsentry/sentry-go v0.48.0 h1:FRZNr7Uk1C86ev1bSJmYlUkL9oyivQA6YOcdYfaaMmY=
+github.com/getsentry/sentry-go v0.48.0/go.mod h1:E5UkA5wp1qR2+MDydNYlVeUiNN2xEdjYMidkgf0Qoss=
 github.com/go-chi/chi/v5 v5.3.1 h1:3j4HZLGZQ3JpMCrPJF/Jl3mYJfWLKBfNJ6quurUGCf8=
 github.com/go-chi/chi/v5 v5.3.1/go.mod h1:R+tYY2hNuVUUjxoPtqUdgBqevM9s9njzkTLutVsOCto=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
@@ -616,10 +616,10 @@ github.com/pomerium/envoy-custom v1.37.0-rc3.0.20260618180819-16ede7a56f2f h1:LG
 github.com/pomerium/envoy-custom v1.37.0-rc3.0.20260618180819-16ede7a56f2f/go.mod h1:7Svo/CaRt9vfJ22sEC+T/q/y2WNi/cZTlugNYUS7xwI=
 github.com/pomerium/pomerium v0.32.5-rc.1.0.20260731175238-396e6327102d h1:vA3EcKAjqkn8+HXyjcIKwgt1j1iU3rlf/N/37k1yuNE=
 github.com/pomerium/pomerium v0.32.5-rc.1.0.20260731175238-396e6327102d/go.mod h1:eDuuc9/oNLq5/k2A1YZizWHId8f/e1yTRWga+zbmKFQ=
-github.com/pomerium/pomerium/pkg/grpc/config v0.0.0-20260731175238-396e6327102d h1:UkLhbAVRf1J1aIFQVbJNLTqxj/KUwL3tR3DNwDV4VE8=
-github.com/pomerium/pomerium/pkg/grpc/config v0.0.0-20260731175238-396e6327102d/go.mod h1:I6wG549K7cMCp6jLf8RYebye1rX415nQzWF1cayoZ0Q=
-github.com/pomerium/pomerium/pkg/grpc/databroker v0.0.0-20260731163429-55014d89c6f7 h1:EhIrD514H900fItk6PI3/QvoWRE9wu/1IF4z0d2WP3o=
-github.com/pomerium/pomerium/pkg/grpc/databroker v0.0.0-20260731163429-55014d89c6f7/go.mod h1:T7LO53lNaSJZUWxVeJ00NctkeQKAhyCCDzTDlR/ZesQ=
+github.com/pomerium/pomerium/pkg/grpc/config v0.33.0 h1:YXPOX4Dcbzy58hIhBbFyJ60tbc3CB63B60wvvUAJPjw=
+github.com/pomerium/pomerium/pkg/grpc/config v0.33.0/go.mod h1:9P8ObnbRPzdU1Q6nvURT6yFZC+LmZ/rii/lnEdmNE5M=
+github.com/pomerium/pomerium/pkg/grpc/databroker v0.33.0 h1:MJzt8/7WPxYdecKK3uYyhDlgXZf/rG6haONxZaHmS/k=
+github.com/pomerium/pomerium/pkg/grpc/databroker v0.33.0/go.mod h1:3+KroqGDQ6EpTFXlyKWcKc1oYcZvdLXJ2yzEe72v3S0=
 github.com/pomerium/protoutil v0.0.0-20260723171127-8936c0a74b84 h1:5XMlLoIeELTlJ5jRe/qunZ+i9Ck6l4rQ7qmTVfzafgg=
 github.com/pomerium/protoutil v0.0.0-20260723171127-8936c0a74b84/go.mod h1:1J6pLngWUe5ypwrbK+QB6rdZt+HbhICC5nhtUlDjUlA=
 github.com/pomerium/webauthn v0.0.0-20260722012417-d3d4b3358d25 h1:go+0OC4GqKnzLzW56QOHtUfK4RnWaJHRyJ2Q2HHYML0=
@@ -665,8 +665,8 @@ github.com/quic-go/go-ossfuzz-seeds v0.1.0 h1:APacT+iIaNF6fd8AGEiN3bT/Jtkd2jz4v4
 github.com/quic-go/go-ossfuzz-seeds v0.1.0/go.mod h1:3IOHRbJIc+L6YKMwfDtJAM9Vj9k0YY4muhuyUYk5tbk=
 github.com/quic-go/qpack v0.6.0 h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=
 github.com/quic-go/qpack v0.6.0/go.mod h1:lUpLKChi8njB4ty2bFLX2x4gzDqXwUpaO1DP9qMDZII=
-github.com/quic-go/quic-go v0.60.0 h1:xcQioE8OM66UQLeUMHltK1CCcOu3JbVB4JAQdDQSB+0=
-github.com/quic-go/quic-go v0.60.0/go.mod h1:wpKpjmPpftl30sL6pFh7REVpjbcCVy4zt2vDyK1TuJk=
+github.com/quic-go/quic-go v0.61.0 h1:ui88A53s8MSVYLC56en0KQ17HARk+9986Dn0SBfKNvA=
+github.com/quic-go/quic-go v0.61.0/go.mod h1:9So2anK4Tp22URSQq00k+Vo2PNkle96ycDPDHL4s9vs=
 github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 h1:bsUq1dX0N8AOIL7EB/X911+m4EHsnWEHeJ0c+3TTBrg=
 github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
