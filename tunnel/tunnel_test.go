@@ -110,3 +110,29 @@ func TestForceHTTP1(t *testing.T) {
 
 	assert.Equal(t, "HTTP/1.1", protocol)
 }
+
+func Test_httpStatusCodeToError(t *testing.T) {
+	cases := []struct {
+		code     int
+		expected error
+	}{
+		{http.StatusOK, nil},
+		{http.StatusServiceUnavailable, errUnavailable},
+		{http.StatusMovedPermanently, errUnauthenticated},
+		{http.StatusFound, errUnauthenticated},
+		{http.StatusTemporaryRedirect, errUnauthenticated},
+		{http.StatusPermanentRedirect, errUnauthenticated},
+		{http.StatusUnauthorized, errUnauthenticated},
+		{http.StatusForbidden, errUnauthorized},
+	}
+	for _, c := range cases {
+		t.Run(http.StatusText(c.code), func(t *testing.T) {
+			assert.Equal(t, c.expected, httpStatusCodeToError(c.code))
+		})
+	}
+
+	t.Run("unexpected", func(t *testing.T) {
+		err := httpStatusCodeToError(http.StatusNotImplemented)
+		assert.ErrorContains(t, err, "invalid http response code: 501")
+	})
+}
