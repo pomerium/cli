@@ -175,7 +175,8 @@ func httpStatusCodeToError(statusCode int) error {
 	case http.StatusMovedPermanently,
 		http.StatusFound,
 		http.StatusTemporaryRedirect,
-		http.StatusPermanentRedirect:
+		http.StatusPermanentRedirect,
+		http.StatusUnauthorized:
 		return errUnauthenticated
 	case http.StatusForbidden:
 		return errUnauthorized
