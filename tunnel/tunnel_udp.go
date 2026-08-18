@@ -264,10 +264,8 @@ func (s *udpSession) run(ctx context.Context) error {
 	return err
 }
 
-func readUDPCapsuleDatagram(
-	src quicvarint.Reader,
-) ([]byte, error) {
-	_, r, err := http3.ParseCapsule(src)
+func readUDPCapsuleDatagram(p *http3.CapsuleParser) ([]byte, error) {
+	_, r, err := p.Next()
 	if err != nil {
 		return nil, err
 	}
@@ -281,8 +279,9 @@ func streamFromCapsuleDatagramsToUDPDatagramWriter(
 	src io.Reader,
 ) error {
 	br := bufio.NewReader(src)
+	cp := http3.NewCapsuleParser(br)
 	for {
-		data, err := readUDPCapsuleDatagram(br)
+		data, err := readUDPCapsuleDatagram(cp)
 		if err != nil {
 			return err
 		}

@@ -13,7 +13,6 @@ import (
 	"github.com/dunglas/httpsfv"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
-	"github.com/quic-go/quic-go/quicvarint"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 )
@@ -277,14 +276,16 @@ func (t *http3tunneler) readRemote(ctx context.Context, dst UDPDatagramWriter, s
 func (t *http3tunneler) skipCapsules(ctx context.Context, str *http3.RequestStream) error {
 	stop := context.AfterFunc(ctx, func() { str.CancelRead(0) })
 	defer stop()
-	r := quicvarint.NewReader(str)
+
+	p := http3.NewCapsuleParser(str)
 	for {
-		_, r, err := http3.ParseCapsule(r)
+		_, r, err := p.Next()
 		if errors.Is(err, io.EOF) {
 			return nil
 		} else if err != nil {
 			return fmt.Errorf("error parsing http3 capsule: %w", err)
 		}
+
 		_, err = io.Copy(io.Discard, r)
 		if err != nil {
 			return fmt.Errorf("error reading http3 capsule payload: %w", err)
