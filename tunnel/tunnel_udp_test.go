@@ -42,7 +42,7 @@ func TestUDPSessionManager(t *testing.T) {
 		require.NoError(t, err)
 		defer in.Close()
 
-		payload, err := readUDPCapsuleDatagram(quicvarint.NewReader(in))
+		payload, err := readUDPCapsuleDatagram(http3.NewCapsuleParser(in))
 		require.NoError(t, err)
 		require.Equal(t, []byte("\x00SEND HELLO WORLD"), payload)
 
