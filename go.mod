@@ -4,9 +4,9 @@ go 1.26.3
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/dunglas/httpsfv v1.1.0
-	github.com/elazarl/goproxy v1.8.4
-	github.com/getsentry/sentry-go v0.47.0
+	github.com/dunglas/httpsfv v1.1.1
+	github.com/elazarl/goproxy v1.9.0
+	github.com/getsentry/sentry-go v0.48.0
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
@@ -20,7 +20,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.10.2
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.0
 	github.com/volatiletech/null/v9 v9.0.0
 	golang.org/x/crypto v0.55.0
 	golang.org/x/net v0.58.0
@@ -58,7 +58,6 @@ require (
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
 	github.com/coreos/go-oidc/v3 v3.20.0 // indirect
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.39.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.3 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
@@ -103,7 +102,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/pires/go-proxyproto v0.15.0 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/pomerium/envoy-custom v1.37.0-rc3.0.20260618180819-16ede7a56f2f // indirect
 	github.com/pomerium/protoutil v0.0.0-20260810121901-c1e5f8551cd0 // indirect
 	github.com/prometheus/client_golang v1.24.0 // indirect
