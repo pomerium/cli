@@ -14,6 +14,7 @@ type config struct {
 	serviceAccountFile string
 	tlsConfig          *tls.Config
 	browserConfig      string
+	forwardProxy       string
 }
 
 func getConfig(options ...Option) *config {
@@ -39,6 +40,15 @@ func WithBrowserCommand(browserCommand string) Option {
 func WithDestinationHost(dstHost string) Option {
 	return func(cfg *config) {
 		cfg.dstHost = dstHost
+	}
+}
+
+// WithForwardProxy returns an option to configure the forward proxy used to
+// reach the Pomerium edge (host:port or URL). An empty value falls back to the
+// standard proxy environment variables.
+func WithForwardProxy(forwardProxy string) Option {
+	return func(cfg *config) {
+		cfg.forwardProxy = forwardProxy
 	}
 }
 

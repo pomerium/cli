@@ -3,7 +3,6 @@ package tunnel
 import (
 	"bufio"
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -44,26 +43,17 @@ func (t *http1tunneler) TunnelTCP(
 		Header: hdr,
 	}).WithContext(ctx)
 
-	var remote net.Conn
-	var err error
-	if t.cfg.tlsConfig != nil {
-		cfg := t.cfg.tlsConfig.Clone()
-		cfg.NextProtos = []string{"http/1.1"}
-
-		remote, err = (&tls.Dialer{Config: cfg}).DialContext(ctx, "tcp", t.cfg.proxyHost)
-	} else {
-		remote, err = (&net.Dialer{}).DialContext(ctx, "tcp", t.cfg.proxyHost)
+	proxyURL, err := resolveEdgeProxy(t.cfg)
+	if err != nil {
+		return fmt.Errorf("http/1: failed to resolve forward proxy: %w", err)
 	}
+	remote, err := dialEdgeTLS(ctx, t.cfg, proxyURL)
 	if err != nil {
 		return fmt.Errorf("http/1: failed to establish connection to proxy: %w", err)
 	}
 	defer remote.Close()
-	if done := ctx.Done(); done != nil {
-		go func() {
-			<-done
-			_ = remote.Close()
-		}()
-	}
+	stop := context.AfterFunc(ctx, func() { _ = remote.Close() })
+	defer stop()
 
 	err = req.Write(remote)
 	if err != nil {
@@ -114,18 +104,14 @@ func (t *http1tunneler) TunnelUDP(
 ) error {
 	eventSink.OnConnecting(ctx)
 
-	var remote net.Conn
-	var err error
-	if t.cfg.tlsConfig != nil {
-		remote, err = (&tls.Dialer{Config: t.cfg.tlsConfig}).DialContext(ctx, "tcp", t.cfg.proxyHost)
-	} else {
-		remote, err = (&net.Dialer{}).DialContext(ctx, "tcp", t.cfg.proxyHost)
-	}
+	// UDP never traverses a forward proxy (TCP-only feature), so dial direct.
+	remote, err := dialEdgeTLS(ctx, t.cfg, nil)
 	if err != nil {
 		return fmt.Errorf("http/1: failed to establish connection to proxy: %w", err)
 	}
 	defer remote.Close()
-	context.AfterFunc(ctx, func() { _ = remote.Close() })
+	stop := context.AfterFunc(ctx, func() { _ = remote.Close() })
+	defer stop()
 
 	dstHost, dstPort, err := net.SplitHostPort(t.cfg.dstHost)
 	if err != nil {

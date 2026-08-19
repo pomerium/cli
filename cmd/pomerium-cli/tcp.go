@@ -9,14 +9,17 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
+	"github.com/pomerium/cli/internal/httputil"
 	"github.com/pomerium/cli/tunnel"
 )
 
 var tcpCmdOptions struct {
-	listen      string
-	pomeriumURL string
+	listen       string
+	pomeriumURL  string
+	forwardProxy string
 }
 
 func init() {
@@ -28,6 +31,8 @@ func init() {
 		"local address to start a listener on")
 	flags.StringVar(&tcpCmdOptions.pomeriumURL, "pomerium-url", "",
 		"the URL of the pomerium server to connect to")
+	flags.StringVar(&tcpCmdOptions.forwardProxy, "forward-proxy", "",
+		"forward proxy for the tunnel and auth (host:port or http/https/socks5/socks5h URL); overrides proxy environment variables and ignores NO_PROXY")
 	rootCmd.AddCommand(tcpCmd)
 }
 
@@ -41,6 +46,19 @@ var tcpCmd = &cobra.Command{
 			return err
 		}
 		cacheLastURL(proxyURL.String())
+
+		// Validate an explicit --forward-proxy before binding the listener so a
+		// bad value fails as a normal CLI error. Environment proxies are
+		// resolved later, at request time.
+		fwdProxyURL, err := httputil.ValidateForwardProxyFlag(tcpCmdOptions.forwardProxy)
+		if err != nil {
+			return err
+		}
+		if fwdProxyURL != nil {
+			log.Info().
+				Str("forward_proxy", fwdProxyURL.Redacted()).
+				Msg("routing tunnel and auth through forward proxy (--forward-proxy); HTTP/3 disabled")
+		}
 
 		var tlsConfig *tls.Config
 		if proxyURL.Scheme == "https" {
@@ -65,6 +83,7 @@ var tcpCmd = &cobra.Command{
 			tunnel.WithServiceAccount(serviceAccountOptions.serviceAccount),
 			tunnel.WithServiceAccountFile(serviceAccountOptions.serviceAccountFile),
 			tunnel.WithTLSConfig(tlsConfig),
+			tunnel.WithForwardProxy(tcpCmdOptions.forwardProxy),
 		)
 
 		if tcpCmdOptions.listen == "-" {
