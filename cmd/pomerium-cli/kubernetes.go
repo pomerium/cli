@@ -174,7 +174,7 @@ type ExecCredential struct {
 type ExecCredentialStatus struct {
 	// ExpirationTimestamp indicates a time when the provided credentials expire.
 	// +optional
-	ExpirationTimestamp time.Time `json:"expirationTimestamp,omitempty"`
+	ExpirationTimestamp time.Time `json:"expirationTimestamp"`
 	// Token is a bearer token used by the client for request authentication.
 	Token string `json:"token,omitempty"`
 	// PEM-encoded client TLS certificates (including intermediates, if any).

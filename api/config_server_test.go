@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/pomerium/cli/api"
 	pb "github.com/pomerium/cli/proto"
@@ -25,17 +24,17 @@ func TestUpsertLoadSave(t *testing.T) {
 			{
 				Tags: []string{"one"},
 				Conn: &pb.Connection{
-					Name:       proto.String("test one"),
+					Name:       new("test one"),
 					RemoteAddr: "test1.another.domain.com",
-					ListenAddr: proto.String(":9993"),
+					ListenAddr: new(":9993"),
 				},
 			},
 			{
 				Tags: []string{"one", "two"},
 				Conn: &pb.Connection{
-					Name:       proto.String("test two"),
+					Name:       new("test two"),
 					RemoteAddr: "test2.some.domain.com",
-					ListenAddr: proto.String(":9991"),
+					ListenAddr: new(":9991"),
 				},
 			},
 		} {
@@ -163,9 +162,9 @@ KSwExwUr94Fr+qoXl/okwJY=
 			r, err := cfg.Upsert(ctx, &pb.Record{
 				Tags: []string{"one"},
 				Conn: &pb.Connection{
-					Name:       proto.String("test one"),
+					Name:       new("test one"),
 					RemoteAddr: "test1.another.domain.com",
-					ListenAddr: proto.String(":9993"),
+					ListenAddr: new(":9993"),
 					ClientCert: crt,
 				},
 			})
@@ -221,17 +220,17 @@ func TestExportImport(t *testing.T) {
 		{
 			Tags: []string{"one"},
 			Conn: &pb.Connection{
-				Name:       proto.String("test one"),
+				Name:       new("test one"),
 				RemoteAddr: "test1.another.domain.com",
-				ListenAddr: proto.String(":9993"),
+				ListenAddr: new(":9993"),
 			},
 		},
 		{
 			Tags: []string{"one", "two"},
 			Conn: &pb.Connection{
-				Name:       proto.String("test two"),
+				Name:       new("test two"),
 				RemoteAddr: "test2.some.domain.com",
-				ListenAddr: proto.String(":9991"),
+				ListenAddr: new(":9991"),
 			},
 		},
 	}

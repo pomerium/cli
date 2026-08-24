@@ -7,7 +7,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 
 	pb "github.com/pomerium/cli/proto"
 )
@@ -19,11 +18,11 @@ func TestConfig(t *testing.T) {
 	assert.Empty(t, cfg.listAll())
 
 	cfg.upsert(&pb.Record{
-		Id:   proto.String("a"),
+		Id:   new("a"),
 		Tags: []string{"alpha", "bravo"},
 	})
 	cfg.upsert(&pb.Record{
-		Id:   proto.String("b"),
+		Id:   new("b"),
 		Tags: []string{"go", "bravo"},
 	})
 	assert.Empty(t, cmp.Diff([]string{"alpha", "bravo", "go"},
@@ -55,7 +54,7 @@ func TestTags(t *testing.T) {
 		{"echo", "foxtrot"},
 	} {
 		cfg.upsert(&pb.Record{
-			Id:   proto.String("a"),
+			Id:   new("a"),
 			Tags: tags,
 		})
 		assert.Empty(t, cmp.Diff(tags, cfg.getTags(),
@@ -98,12 +97,12 @@ func TestLoadConfig(t *testing.T) {
 	assert.NoError(t, err)
 
 	exampleRecord := &pb.Record{
-		Id:   ptr("114acc22-c18f-4326-8606-425acc2b3eb5"),
+		Id:   new("114acc22-c18f-4326-8606-425acc2b3eb5"),
 		Tags: []string{"admin"},
 		Conn: &pb.Connection{
-			Name:       ptr("Example"),
+			Name:       new("Example"),
 			RemoteAddr: "example.route.pomerium.com:5000",
-			ListenAddr: ptr("127.0.0.1:5000"),
+			ListenAddr: new("127.0.0.1:5000"),
 			TlsOptions: &pb.Connection_DisableTlsVerification{},
 		},
 	}
@@ -133,6 +132,7 @@ func (s *stubConfigProvider) Save(b []byte) error {
 	return nil
 }
 
+//go:fix inline
 func ptr[T any](value T) *T {
-	return &value
+	return new(value)
 }
