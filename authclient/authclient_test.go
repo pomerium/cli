@@ -2,8 +2,11 @@ package authclient
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -13,7 +16,36 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pomerium/cli/internal/testutil"
 )
+
+// Auth requests route through the forward proxy.
+func TestCheckBearerTokenViaProxy(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	pool := x509.NewCertPool()
+	pool.AddCert(srv.Certificate())
+
+	proxy := testutil.NewConnectProxy(t)
+
+	ac := New(
+		WithForwardProxy(proxy.Addr),
+		WithTLSConfig(&tls.Config{RootCAs: pool}))
+
+	serverURL, err := url.Parse(srv.URL)
+	require.NoError(t, err)
+
+	require.NoError(t, ac.CheckBearerToken(ctx, serverURL, "token"))
+	assert.Positive(t, proxy.Conns(), "auth request should route through the forward proxy")
+	assert.Equal(t, serverURL.Host, proxy.Target())
+}
 
 func TestAuthClient(t *testing.T) {
 	t.Parallel()

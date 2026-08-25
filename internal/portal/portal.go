@@ -103,7 +103,13 @@ func (p *Portal) listRoutes(ctx context.Context, serverURL *url.URL, rawJWT stri
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer Pomerium-"+rawJWT)
 
-	bs, err := httputil.Fetch(ctx, p.cfg.tlsConfig, req)
+	// match the auth client's proxy resolution so the whole portal flow takes
+	// one path to the server.
+	opts, err := httputil.ProxyFetchOptions("", serverURL)
+	if err != nil {
+		return nil, fmt.Errorf("error resolving forward proxy: %w", err)
+	}
+	bs, err := httputil.Fetch(ctx, p.cfg.tlsConfig, req, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching routes portal: %w", err)
 	}

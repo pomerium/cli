@@ -34,6 +34,15 @@ func (tun *Tunnel) pickTCPTunneler(ctx context.Context) TCPTunneler {
 		return fallback
 	}
 
+	// a forward proxy can't traverse QUIC, so skip the http3 probe entirely.
+	if proxyURL, err := resolveEdgeProxy(tun.cfg); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to resolve forward proxy, using http1")
+		return fallback
+	} else if proxyURL != nil {
+		log.Ctx(ctx).Info().Msg("forward proxy configured, using http1")
+		return fallback
+	}
+
 	client := &http.Client{
 		Transport: httputil.NewLoggingRoundTripper(log.Logger, &http.Transport{
 			ForceAttemptHTTP2: true,
