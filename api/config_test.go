@@ -131,8 +131,3 @@ func (s *stubConfigProvider) Save(b []byte) error {
 	s.data = b
 	return nil
 }
-
-//go:fix inline
-func ptr[T any](value T) *T {
-	return new(value)
-}
