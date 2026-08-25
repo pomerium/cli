@@ -26,7 +26,7 @@ type ConfigProvider interface {
 	Save([]byte) error
 }
 
-type Config interface{}
+type Config any
 
 // ListenerStatus marks individual records as locked
 type ListenerStatus interface {

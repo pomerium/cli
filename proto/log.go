@@ -16,7 +16,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func appendProto(evt *zerolog.Event, key string, obj interface{}) *zerolog.Event {
+func appendProto(evt *zerolog.Event, key string, obj any) *zerolog.Event {
 	if obj == nil {
 		return evt.Str(key, "nil")
 	}

@@ -12,7 +12,6 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/pomerium/cli/proto"
@@ -130,7 +129,7 @@ type tunnelEvents struct {
 
 func (evt *tunnelEvents) withPeer(conn net.Conn) *tunnelEvents {
 	ne := *evt
-	ne.peer = proto.String(conn.RemoteAddr().String())
+	ne.peer = new(conn.RemoteAddr().String())
 	return &ne
 }
 

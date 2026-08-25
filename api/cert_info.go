@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/golang/groupcache/lru"
-	"google.golang.org/protobuf/proto"
 
 	pb "github.com/pomerium/cli/proto"
 	"github.com/pomerium/pomerium/pkg/cryptutil"
@@ -26,7 +25,7 @@ func withCertInfo(cache *lru.Cache, records []*pb.Record) []*pb.Record {
 }
 
 func certInfoError(message string) *pb.CertificateInfo {
-	return &pb.CertificateInfo{Error: proto.String(message)}
+	return &pb.CertificateInfo{Error: new(message)}
 }
 
 func getCertInfo(cache *lru.Cache, raw []byte) (*pb.CertificateInfo, error) {

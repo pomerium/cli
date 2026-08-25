@@ -9,7 +9,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/pomerium/cli/proto"
@@ -85,7 +84,7 @@ func (s *server) connectTCPTunnelLocked(id string, tun Tunnel, listenAddr string
 	if err != nil {
 		_ = s.EventBroadcaster.Update(ctx, &pb.ConnectionStatusUpdate{
 			Id:        id,
-			LastError: proto.String(fmt.Errorf("listen: %w", err).Error()),
+			LastError: new(fmt.Errorf("listen: %w", err).Error()),
 			Ts:        timestamppb.Now(),
 		})
 		cancel()
@@ -95,7 +94,7 @@ func (s *server) connectTCPTunnelLocked(id string, tun Tunnel, listenAddr string
 	if err = s.SetListening(id, cancel, li.Addr().String()); err != nil {
 		_ = s.EventBroadcaster.Update(ctx, &pb.ConnectionStatusUpdate{
 			Id:        id,
-			LastError: proto.String(fmt.Errorf("SetListening: %w", err).Error()),
+			LastError: new(fmt.Errorf("SetListening: %w", err).Error()),
 			Ts:        timestamppb.Now(),
 		})
 		cancel()
@@ -114,7 +113,7 @@ func (s *server) connectUDPTunnelLocked(id string, tun Tunnel, listenAddr string
 	if err != nil {
 		_ = s.EventBroadcaster.Update(ctx, &pb.ConnectionStatusUpdate{
 			Id:        id,
-			LastError: proto.String(fmt.Errorf("ResolveUDPAddr: %w", err).Error()),
+			LastError: new(fmt.Errorf("ResolveUDPAddr: %w", err).Error()),
 			Ts:        timestamppb.Now(),
 		})
 		cancel()
@@ -125,7 +124,7 @@ func (s *server) connectUDPTunnelLocked(id string, tun Tunnel, listenAddr string
 	if err != nil {
 		_ = s.EventBroadcaster.Update(ctx, &pb.ConnectionStatusUpdate{
 			Id:        id,
-			LastError: proto.String(fmt.Errorf("ListenUDP: %w", err).Error()),
+			LastError: new(fmt.Errorf("ListenUDP: %w", err).Error()),
 			Ts:        timestamppb.Now(),
 		})
 		cancel()

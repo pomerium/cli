@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/proto"
 
 	pb "github.com/pomerium/cli/proto"
 )
@@ -44,7 +43,7 @@ func TestGetProxy(t *testing.T) {
 		"custom https proxy": {
 			&pb.Connection{
 				RemoteAddr:  "tcp.localhost.pomerium.io:99",
-				PomeriumUrl: proto.String("https://localhost"),
+				PomeriumUrl: new("https://localhost"),
 			},
 			"https://localhost:443",
 			false,
@@ -52,7 +51,7 @@ func TestGetProxy(t *testing.T) {
 		"custom http proxy": {
 			&pb.Connection{
 				RemoteAddr:  "tcp.localhost.pomerium.io:99",
-				PomeriumUrl: proto.String("http://localhost"),
+				PomeriumUrl: new("http://localhost"),
 			},
 			"http://localhost:80",
 			false,
@@ -60,7 +59,7 @@ func TestGetProxy(t *testing.T) {
 		"custom https proxy port": {
 			&pb.Connection{
 				RemoteAddr:  "tcp.localhost.pomerium.io:99",
-				PomeriumUrl: proto.String("https://localhost:5443"),
+				PomeriumUrl: new("https://localhost:5443"),
 			},
 			"https://localhost:5443",
 			false,
@@ -68,7 +67,7 @@ func TestGetProxy(t *testing.T) {
 		"custom http proxy port": {
 			&pb.Connection{
 				RemoteAddr:  "tcp.localhost.pomerium.io:99",
-				PomeriumUrl: proto.String("http://localhost:8080"),
+				PomeriumUrl: new("http://localhost:8080"),
 			},
 			"http://localhost:8080",
 			false,
@@ -76,7 +75,7 @@ func TestGetProxy(t *testing.T) {
 		"invalid url": {
 			&pb.Connection{
 				RemoteAddr:  "tcp.localhost.pomerium.io:99",
-				PomeriumUrl: proto.String("localhost:7777"),
+				PomeriumUrl: new("localhost:7777"),
 			},
 			"",
 			true,
@@ -84,7 +83,7 @@ func TestGetProxy(t *testing.T) {
 		"empty proxy url": {
 			&pb.Connection{
 				RemoteAddr:  "tcp.localhost.pomerium.io:99",
-				PomeriumUrl: proto.String(""),
+				PomeriumUrl: new(""),
 			},
 			"",
 			true,

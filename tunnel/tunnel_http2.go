@@ -64,7 +64,7 @@ func (t *http2tunneler) TunnelTCP(
 
 	req := (&http.Request{
 		Method:        "CONNECT",
-		URL:           &url.URL{Opaque: t.cfg.dstHost},
+		URL:           &url.URL{Opaque: t.cfg.dstHost, Host: t.cfg.dstHost},
 		Host:          t.cfg.dstHost,
 		Header:        hdr,
 		Body:          pr,

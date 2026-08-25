@@ -28,7 +28,6 @@ func TestParseURLs(t *testing.T) {
 		{"invalid pomerium url", "redis.example.com:6379", "example.com:1234", "", "", errors.New("invalid pomerium url")},
 		{"pomerium url", "redis.example.com:6379", "https://proxy.example.com", "redis.example.com:6379", "https://proxy.example.com:443", nil},
 	} {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 

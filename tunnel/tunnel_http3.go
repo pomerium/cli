@@ -238,8 +238,7 @@ func (t *http3tunneler) readLocal(ctx context.Context, dst *http3.RequestStream,
 
 		err = dst.SendDatagram(datagram.data)
 
-		var tooLargeError *quic.DatagramTooLargeError
-		if errors.As(err, &tooLargeError) {
+		if tooLargeError, ok := errors.AsType[*quic.DatagramTooLargeError](err); ok {
 			logMaxDatagramPayloadSizeOnce.Do(func() {
 				log.Ctx(ctx).Error().
 					Int64("max-datagram-payload-size", tooLargeError.MaxDatagramPayloadSize).

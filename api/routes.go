@@ -3,8 +3,6 @@ package api
 import (
 	"context"
 
-	"google.golang.org/protobuf/proto"
-
 	"github.com/pomerium/cli/internal/portal"
 	pb "github.com/pomerium/cli/proto"
 )
@@ -41,7 +39,7 @@ func (srv *server) FetchRoutes(
 			LogoUrl:     route.LogoURL,
 		}
 		if route.ConnectCommand != "" {
-			r.ConnectCommand = proto.String(route.ConnectCommand)
+			r.ConnectCommand = new(route.ConnectCommand)
 		}
 		res.Routes = append(res.Routes, r)
 	}

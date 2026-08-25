@@ -1,22 +1,19 @@
 package api_test
 
 import (
-	"context"
 	"net"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/pomerium/cli/api"
 	pb "github.com/pomerium/cli/proto"
 )
 
 func TestListenerServer(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	srv, err := api.NewServer(ctx)
 	require.NoError(t, err)
@@ -25,7 +22,7 @@ func TestListenerServer(t *testing.T) {
 		Tags: []string{"test"},
 		Conn: &pb.Connection{
 			RemoteAddr: "tcp.localhost.pomerium.io:99",
-			ListenAddr: proto.String(":0"),
+			ListenAddr: new(":0"),
 		},
 	})
 	require.NoError(t, err)
@@ -105,8 +102,7 @@ func TestListenerServer(t *testing.T) {
 }
 
 func TestDeleteActiveListener(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	srv, err := api.NewServer(ctx)
 	require.NoError(t, err)
@@ -115,7 +111,7 @@ func TestDeleteActiveListener(t *testing.T) {
 		Tags: []string{"test"},
 		Conn: &pb.Connection{
 			RemoteAddr: "tcp.localhost.pomerium.io:99",
-			ListenAddr: proto.String(":0"),
+			ListenAddr: new(":0"),
 		},
 	})
 	require.NoError(t, err)
@@ -152,7 +148,7 @@ func TestDeleteActiveListener(t *testing.T) {
 		Tags: []string{"test"},
 		Conn: &pb.Connection{
 			RemoteAddr: "notactive.localhost.pomerium.io:99",
-			ListenAddr: proto.String(":0"),
+			ListenAddr: new(":0"),
 		},
 	})
 	require.NoError(t, err)

@@ -50,7 +50,6 @@ formatters:
   enable:
     - gci
     - gofumpt
-    - goimports
   settings:
     gci:
       sections:
