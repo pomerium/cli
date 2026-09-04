@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	_ "embed"
 	"fmt"
 	"os"
 	"os/signal"
@@ -19,9 +20,26 @@ import (
 	"github.com/pomerium/pomerium/pkg/cryptutil"
 )
 
+//go:embed SKILL.md
+var skillMD []byte
+
+var printSkill bool
+
 var rootCmd = &cobra.Command{
 	Use:     "pomerium-cli",
 	Version: version.FullVersion(),
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		if printSkill {
+			_, err := cmd.OutOrStdout().Write(skillMD)
+			return err
+		}
+		return cmd.Help()
+	},
+}
+
+func init() {
+	rootCmd.Flags().BoolVar(&printSkill, "skill", false,
+		"print the Agent Skill definition (SKILL.md) to stdout")
 }
 
 func main() {
