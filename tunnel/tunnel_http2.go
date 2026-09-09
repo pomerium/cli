@@ -54,7 +54,7 @@ func (t *http2tunneler) TunnelTCP(
 		return fmt.Errorf("%w: unexpected TLS protocol: %s", errUnsupported, protocol)
 	}
 
-	cc, err := (&http2.Transport{}).NewClientConn(remote)
+	cc, err := (&http2.Transport{}).NewClientConn(remote) //nolint:staticcheck
 	if err != nil {
 		return fmt.Errorf("http/2: failed to establish connection: %w", err)
 	}
