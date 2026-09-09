@@ -27,16 +27,7 @@ jobs:
       - name: Generate
         run: make generate
 
-      - name: Check for Changes
-        id: git-diff
-        run: |
-          git config --global user.email "apparitor@users.noreply.github.com"
-          git config --global user.name "GitHub Actions"
-          git add .
-          git diff --cached --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
-
       - name: Create Pull Request
-        if: ${{ steps.git-diff.outputs.changed }} == 'true'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1
         with:
           author: GitHub Actions <apparitor@users.noreply.github.com>
