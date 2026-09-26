@@ -13,9 +13,9 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
-	github.com/pomerium/pomerium v0.32.5-rc.1.0.20260922181352-6a0461070c4a
-	github.com/pomerium/pomerium/pkg/grpc/config v0.0.0-20260922181352-6a0461070c4a
-	github.com/pomerium/pomerium/pkg/grpc/databroker v0.0.0-20260922181352-6a0461070c4a
+	github.com/pomerium/pomerium v0.32.5-rc.1.0.20260925164750-35d2936ae767
+	github.com/pomerium/pomerium/pkg/grpc/config v0.0.0-20260925164750-35d2936ae767
+	github.com/pomerium/pomerium/pkg/grpc/databroker v0.0.0-20260925164750-35d2936ae767
 	github.com/quic-go/quic-go v0.62.0
 	github.com/rs/zerolog v1.35.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -102,7 +102,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/pires/go-proxyproto v0.15.0 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
-	github.com/pomerium/envoy-custom v1.37.0-rc3.0.20260618180819-16ede7a56f2f // indirect
+	github.com/pomerium/envoy-custom v1.37.0-rc3.0.20260916000610-36777435573c // indirect
 	github.com/pomerium/protoutil v0.0.0-20260903003736-c0c6cb1eb609 // indirect
 	github.com/prometheus/client_golang v1.24.1 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
