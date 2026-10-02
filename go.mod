@@ -4,8 +4,8 @@ go 1.27.1
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/dunglas/httpsfv v1.1.1
-	github.com/elazarl/goproxy v1.9.0
+	github.com/dunglas/httpsfv v1.1.2
+	github.com/elazarl/goproxy v1.9.2
 	github.com/getsentry/sentry-go v0.49.0
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-jose/go-jose/v3 v3.0.5
@@ -16,7 +16,7 @@ require (
 	github.com/pomerium/pomerium v0.32.5-rc.1.0.20260922181352-6a0461070c4a
 	github.com/pomerium/pomerium/pkg/grpc/config v0.0.0-20260922181352-6a0461070c4a
 	github.com/pomerium/pomerium/pkg/grpc/databroker v0.0.0-20260922181352-6a0461070c4a
-	github.com/quic-go/quic-go v0.62.0
+	github.com/quic-go/quic-go v0.63.0
 	github.com/rs/zerolog v1.35.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.10.2
