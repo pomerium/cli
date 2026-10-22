@@ -69,7 +69,7 @@ build: ## Build everything.
 
 .PHONY: snapshot
 snapshot: ## Create release snapshot
-	APPARITOR_GITHUB_TOKEN=foo VERSION_FLAGS="$(CTIMEVAR)" goreleaser release --snapshot --clean
+	VERSION_FLAGS="$(CTIMEVAR)" goreleaser release --snapshot --clean
 
 
 .PHONY: help
