@@ -1,6 +1,6 @@
 name: Release
 permissions:
-  contents: write # in order to upload release assets
+  contents: read
 on:
   release:
     types:
@@ -14,12 +14,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
 
       - name: Set build version metadata flags
         id: flags
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
         run: |
           ldflags=(
-            "-X github.com/pomerium/cli/version.Version=${{ github.event.release.tag_name }}"
+            "-X github.com/pomerium/cli/version.Version=$VERSION"
             "-X github.com/pomerium/cli/version.GitCommit=$(git rev-parse --short HEAD)"
             "-X github.com/pomerium/cli/version.BuildMeta=$(date +%s)"
             "-X github.com/pomerium/cli/version.ProjectName=pomerium-cli"
@@ -28,6 +32,8 @@ jobs:
           echo "versionFlags=${ldflags[*]}" >> $GITHUB_OUTPUT
 
   build-windows:
+    permissions:
+      contents: write
     runs-on: windows-latest
     needs: metadata
     outputs:
@@ -35,21 +41,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: .tool-versions
+          cache: false
 
       - name: Build and archive
         id: build
         shell: bash
+        env:
+          VERSION_FLAGS: ${{ needs.metadata.outputs.versionFlags }}
         run: |
           echo 'checksums<<EOF' >> $GITHUB_OUTPUT
           for arch in amd64 arm64; do
             mkdir -p bin/$arch
             GOARCH=$arch CGO_ENABLED=1 go build -o bin/$arch \
-              -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
+              -ldflags="-s -w $VERSION_FLAGS" \
               ./cmd/pomerium-cli
             zipfile="pomerium-cli-windows-$arch.zip"
             powershell "Compress-Archive -Path bin\\$arch\\\* -DestinationPath $zipfile"
@@ -62,9 +73,12 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" pomerium-cli-windows-*.zip
+          VERSION: ${{ github.event.release.tag_name }}
+        run: gh release upload "$VERSION" pomerium-cli-windows-*.zip
 
   build-darwin:
+    permissions:
+      contents: write
     runs-on: macos-15
     needs: metadata
     environment: apple-signing
@@ -73,11 +87,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: .tool-versions
+          cache: false
 
       - name: Import signing certificates
         env:
@@ -98,11 +115,14 @@ jobs:
           security list-keychains -d user -s "$keychain"
 
       - name: Build, sign, and package
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+          VERSION_FLAGS: ${{ needs.metadata.outputs.versionFlags }}
         run: |
           for arch in amd64 arm64; do
             mkdir -p bin/$arch
             GOARCH=$arch CGO_ENABLED=1 go build -o bin/$arch \
-              -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
+              -ldflags="-s -w $VERSION_FLAGS" \
               ./cmd/pomerium-cli
           done
           mkdir -p bin/universal
@@ -111,7 +131,7 @@ jobs:
             codesign --force --timestamp --options runtime --sign "Developer ID Application" bin/$arch/pomerium-cli
             zip -qj pomerium-cli-darwin-$arch.zip bin/$arch/pomerium-cli
           done
-          pkgbuild --root bin/universal --identifier com.pomerium.pomerium-cli --version "${{ github.event.release.tag_name }}" \
+          pkgbuild --root bin/universal --identifier com.pomerium.pomerium-cli --version "$VERSION" \
             --install-location /usr/local/bin/ --sign "Developer ID Installer" --timestamp pomerium-cli.pkg
 
       - name: Notarize and staple
@@ -139,7 +159,8 @@ jobs:
       - name: Upload to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload --clobber "${{ github.event.release.tag_name }}" pomerium-cli-darwin-*.zip pomerium-cli.pkg
+          VERSION: ${{ github.event.release.tag_name }}
+        run: gh release upload --clobber "$VERSION" pomerium-cli-darwin-*.zip pomerium-cli.pkg
 
   goreleaser:
     permissions:
@@ -158,11 +179,13 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0 # GoReleaser needs commit history for changelog
+          persist-credentials: false
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: .tool-versions
+          cache: false
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
@@ -176,7 +199,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v7.2.3
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94
         with:
           version: v2.8.2
           args: release
@@ -209,9 +232,9 @@ jobs:
         if: "!github.event.release.prerelease"
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+          VERSION: ${{ steps.tagName.outputs.pkgversion }}
         working-directory: dist/
         run: |
-          VERSION=${{ steps.tagName.outputs.pkgversion }}
           RPMS="pomerium-cli-${VERSION}-1.aarch64.rpm pomerium-cli-${VERSION}-1.x86_64.rpm pomerium-cli-${VERSION}-1.armv6hl.rpm pomerium-cli-${VERSION}-1.armv7hl.rpm"
           for pkg in $(echo $RPMS); do
             cloudsmith push rpm pomerium/pomerium/el/any-version $pkg
@@ -230,11 +253,15 @@ jobs:
 
       - name: Publish latest tag
         if: "steps.latestTag.outputs.tag == steps.tagName.outputs.tag"
+        env:
+          TAG: ${{ steps.tagName.outputs.tag }}
         run: |
-          docker manifest create -a pomerium/cli:latest pomerium/cli:amd64-${{ steps.tagName.outputs.tag }} pomerium/cli:arm64v8-${{ steps.tagName.outputs.tag }}
+          docker manifest create -a pomerium/cli:latest "pomerium/cli:amd64-$TAG" "pomerium/cli:arm64v8-$TAG"
           docker manifest push pomerium/cli:latest
 
   finish:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     needs: [build-darwin, build-windows, goreleaser]
     steps:
@@ -242,13 +269,17 @@ jobs:
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.release.tag_name }}
+          WINDOWS_CHECKSUMS: ${{ needs.build-windows.outputs.checksums }}
+          GORELEASER_CHECKSUMS: ${{ needs.goreleaser.outputs.checksums }}
+          DARWIN_CHECKSUMS: ${{ needs.build-darwin.outputs.checksums }}
         run: |
           {
-            echo "${{ needs.build-windows.outputs.checksums }}"
-            echo "${{ needs.goreleaser.outputs.checksums }}"
-            echo "${{ needs.build-darwin.outputs.checksums }}"
+            echo "$WINDOWS_CHECKSUMS"
+            echo "$GORELEASER_CHECKSUMS"
+            echo "$DARWIN_CHECKSUMS"
           } >> pomerium-cli_checksums.txt
-          gh release upload --clobber "${{ github.event.release.tag_name }}" pomerium-cli_checksums.txt
+          gh release upload --clobber "$VERSION" pomerium-cli_checksums.txt
 
       - id: clean_version
         run: |
@@ -256,15 +287,15 @@ jobs:
         env:
           VERSION: "${{ github.event.release.tag_name }}"
 
-      - name: Find latest tag
-        id: latestTag
+      - name: Find highest vX.Y.Z tag
+        id: highestTag
         run: |
           tags=$(git ls-remote --tags --refs "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY")
           echo "tag=$(grep -oE 'refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' <<<"$tags" | cut -d/ -f3 | sort --version-sort | tail -1)" >> "$GITHUB_OUTPUT"
 
       - name: Create CI token
         id: ci-token
-        if: steps.latestTag.outputs.tag == github.event.release.tag_name
+        if: steps.highestTag.outputs.tag == github.event.release.tag_name
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510
         with:
           client-id: ${{ secrets.POMERIUM_CI_APP_CLIENT_ID }}
@@ -274,7 +305,7 @@ jobs:
           permission-contents: write
 
       - name: Update homebrew tap
-        if: steps.latestTag.outputs.tag == github.event.release.tag_name
+        if: steps.highestTag.outputs.tag == github.event.release.tag_name
         uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697
         with:
           repository: pomerium/homebrew-tap
