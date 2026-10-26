@@ -64,6 +64,83 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ github.event.release.tag_name }}" pomerium-cli-windows-*.zip
 
+  build-darwin:
+    runs-on: macos-15
+    needs: metadata
+    environment: apple-signing
+    outputs:
+      checksums: ${{ steps.checksums.outputs.checksums }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: .tool-versions
+
+      - name: Import signing certificates
+        env:
+          MACOS_SIGN_P12: ${{ secrets.MACOS_SIGN_P12 }}
+          MACOS_SIGN_PASSWORD: ${{ secrets.MACOS_SIGN_PASSWORD }}
+          MACOS_INSTALLER_P12: ${{ secrets.MACOS_INSTALLER_P12 }}
+          MACOS_INSTALLER_PASSWORD: ${{ secrets.MACOS_INSTALLER_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(uuidgen)
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          echo "$MACOS_SIGN_P12" | base64 --decode > "$RUNNER_TEMP/sign.p12"
+          echo "$MACOS_INSTALLER_P12" | base64 --decode > "$RUNNER_TEMP/installer.p12"
+          security import "$RUNNER_TEMP/sign.p12" -k "$keychain" -P "$MACOS_SIGN_PASSWORD" -T /usr/bin/codesign
+          security import "$RUNNER_TEMP/installer.p12" -k "$keychain" -P "$MACOS_INSTALLER_PASSWORD" -T /usr/bin/pkgbuild
+          security set-key-partition-list -S apple-tool:,apple: -k "$password" "$keychain"
+          security list-keychains -d user -s "$keychain"
+
+      - name: Build, sign, and package
+        run: |
+          for arch in amd64 arm64; do
+            mkdir -p bin/$arch
+            GOARCH=$arch CGO_ENABLED=1 go build -o bin/$arch \
+              -ldflags="-s -w ${{ needs.metadata.outputs.versionFlags }}" \
+              ./cmd/pomerium-cli
+          done
+          mkdir -p bin/universal
+          lipo -create -output bin/universal/pomerium-cli bin/amd64/pomerium-cli bin/arm64/pomerium-cli
+          for arch in amd64 arm64 universal; do
+            codesign --force --timestamp --options runtime --sign "Developer ID Application" bin/$arch/pomerium-cli
+            zip -qj pomerium-cli-darwin-$arch.zip bin/$arch/pomerium-cli
+          done
+          pkgbuild --root bin/universal --identifier com.pomerium.pomerium-cli --version "${{ github.event.release.tag_name }}" \
+            --install-location /usr/local/bin/ --sign "Developer ID Installer" --timestamp pomerium-cli.pkg
+
+      - name: Notarize and staple
+        env:
+          MACOS_NOTARY_KEY: ${{ secrets.MACOS_NOTARY_KEY }}
+          MACOS_NOTARY_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
+          MACOS_NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}
+        run: |
+          echo "$MACOS_NOTARY_KEY" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+          for file in pomerium-cli-darwin-*.zip pomerium-cli.pkg; do
+            xcrun notarytool submit "$file" --key "$RUNNER_TEMP/notary.p8" --key-id "$MACOS_NOTARY_KEY_ID" \
+              --issuer "$MACOS_NOTARY_ISSUER_ID" --wait --output-format json | jq -e '., .status == "Accepted"'
+          done
+          xcrun stapler staple pomerium-cli.pkg
+
+      - name: Compute checksums
+        id: checksums
+        run: |
+          {
+            echo 'checksums<<EOF'
+            shasum -a 256 pomerium-cli-darwin-*.zip pomerium-cli.pkg
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload --clobber "${{ github.event.release.tag_name }}" pomerium-cli-darwin-*.zip pomerium-cli.pkg
+
   goreleaser:
     permissions:
       contents: write
@@ -159,16 +236,19 @@ jobs:
 
   finish:
     runs-on: ubuntu-latest
-    needs: [build-windows, goreleaser, metadata]
+    needs: [build-darwin, build-windows, goreleaser]
     steps:
       - name: Upload checksums
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "${{ needs.build-windows.outputs.checksums }}" >> pomerium-cli_checksums.txt
-          echo "${{ needs.goreleaser.outputs.checksums }}" >> pomerium-cli_checksums.txt
-          gh release upload "${{ github.event.release.tag_name }}" pomerium-cli_checksums.txt
+          {
+            echo "${{ needs.build-windows.outputs.checksums }}"
+            echo "${{ needs.goreleaser.outputs.checksums }}"
+            echo "${{ needs.build-darwin.outputs.checksums }}"
+          } >> pomerium-cli_checksums.txt
+          gh release upload --clobber "${{ github.event.release.tag_name }}" pomerium-cli_checksums.txt
 
       - id: clean_version
         run: |
@@ -176,20 +256,28 @@ jobs:
         env:
           VERSION: "${{ github.event.release.tag_name }}"
 
+      - name: Find latest tag
+        id: latestTag
+        run: |
+          tags=$(git ls-remote --tags --refs "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY")
+          echo "tag=$(grep -oE 'refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' <<<"$tags" | cut -d/ -f3 | sort --version-sort | tail -1)" >> "$GITHUB_OUTPUT"
+
       - name: Create CI token
         id: ci-token
+        if: steps.latestTag.outputs.tag == github.event.release.tag_name
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510
         with:
           client-id: ${{ secrets.POMERIUM_CI_APP_CLIENT_ID }}
           private-key: ${{ secrets.POMERIUM_CI_APP_PRIVATE_KEY }}
           owner: pomerium
-          repositories: mac-builds
+          repositories: homebrew-tap
           permission-contents: write
 
-      - name: trigger mac signed and notarized builds
+      - name: Update homebrew tap
+        if: steps.latestTag.outputs.tag == github.event.release.tag_name
         uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697
         with:
-          repository: pomerium/mac-builds
+          repository: pomerium/homebrew-tap
           token: ${{ steps.ci-token.outputs.token }}
           event-type: pomerium-cli-release
-          client-payload: '{ "release": "${{ github.event.release.tag_name }}", "version_flags": "${{ needs.metadata.outputs.versionFlags }}", "push": "true" }'
+          client-payload: '{ "version": "${{ steps.clean_version.outputs.release }}" }'
