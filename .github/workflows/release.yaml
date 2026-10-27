@@ -13,7 +13,7 @@ jobs:
       versionFlags: ${{ steps.flags.outputs.versionFlags }}
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set build version metadata flags
         id: flags
@@ -34,10 +34,10 @@ jobs:
       checksums: ${{ steps.build.outputs.checksums }}
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .tool-versions
 
@@ -78,28 +78,28 @@ jobs:
       checksums: ${{ steps.checksums.outputs.checksums }}
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # GoReleaser needs commit history for changelog
 
       - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .tool-versions
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: azure/docker-login@15c4aadf093404726ab2ff205b2cdd33fa6d054c
+      - uses: azure/docker-login@15c4aadf093404726ab2ff205b2cdd33fa6d054c # v2
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v7.2.3
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
           version: v2.8.2
           args: release
@@ -178,7 +178,7 @@ jobs:
 
       - name: Create CI token
         id: ci-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ secrets.POMERIUM_CI_APP_CLIENT_ID }}
           private-key: ${{ secrets.POMERIUM_CI_APP_PRIVATE_KEY }}
@@ -187,7 +187,7 @@ jobs:
           permission-contents: write
 
       - name: trigger mac signed and notarized builds
-        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
         with:
           repository: pomerium/mac-builds
           token: ${{ steps.ci-token.outputs.token }}
