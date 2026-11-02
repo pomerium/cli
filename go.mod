@@ -6,8 +6,8 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/dunglas/httpsfv v1.1.2
 	github.com/elazarl/goproxy v1.9.2
-	github.com/getsentry/sentry-go v0.49.0
-	github.com/go-chi/chi/v5 v5.4.0
+	github.com/getsentry/sentry-go v0.50.0
+	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
 	github.com/google/go-cmp v0.7.0
@@ -16,7 +16,7 @@ require (
 	github.com/pomerium/pomerium v0.32.5-rc.1.0.20261027194504-2c1390bb237c
 	github.com/pomerium/pomerium/pkg/grpc/config v0.0.0-20261027194504-2c1390bb237c
 	github.com/pomerium/pomerium/pkg/grpc/databroker v0.0.0-20261027194504-2c1390bb237c
-	github.com/quic-go/quic-go v0.63.0
+	github.com/quic-go/quic-go v0.64.1
 	github.com/rs/zerolog v1.35.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.10.2
