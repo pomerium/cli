@@ -31,6 +31,15 @@ get-tool-version() {
 	asdf current --no-header "$_tool" | tr -s ' ' | cut -d ' ' -f2
 }
 
+get-commit-sha() {
+	local _repo_url="${1?"repo url is required"}"
+	local _branch="${2?"branch is required"}"
+
+	require-command git
+
+	git ls-remote "$_repo_url" "refs/heads/$_branch" | awk '{print $1}'
+}
+
 get-docker-tag-with-version() {
 	local _name="${1?"name is required"}"
 	local _tag="${2?"tag is required"}"
@@ -59,10 +68,15 @@ update-pomerium() {
 
 	require-command go
 
+	# Fetch the pinned core commit from GitHub directly, not via the module proxy.
+	local _core_sha
+	_core_sha="$(get-commit-sha https://github.com/pomerium/pomerium main)"
+	export GOPRIVATE="github.com/pomerium/pomerium${GOPRIVATE:+,$GOPRIVATE}"
+
 	go get -u \
-		github.com/pomerium/pomerium@main \
-		github.com/pomerium/pomerium/pkg/grpc/config@main \
-		github.com/pomerium/pomerium/pkg/grpc/databroker@main
+		"github.com/pomerium/pomerium@$_core_sha" \
+		"github.com/pomerium/pomerium/pkg/grpc/config@$_core_sha" \
+		"github.com/pomerium/pomerium/pkg/grpc/databroker@$_core_sha"
 	go mod tidy
 
 	popd
