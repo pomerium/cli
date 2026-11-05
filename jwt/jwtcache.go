@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-jose/go-jose/v3"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/martinlindhe/base36"
 	"github.com/rs/zerolog/log"
 	"github.com/volatiletech/null/v9"
@@ -18,6 +18,16 @@ import (
 	"github.com/pomerium/cli/internal/cache"
 	"github.com/pomerium/pomerium/pkg/cryptutil"
 )
+
+// SignatureAlgorithms are the JWS algorithms accepted when reading claims from
+// a Pomerium JWT. The signature itself is not verified.
+var SignatureAlgorithms = []jose.SignatureAlgorithm{
+	jose.EdDSA,
+	jose.HS256, jose.HS384, jose.HS512,
+	jose.RS256, jose.RS384, jose.RS512,
+	jose.ES256, jose.ES384, jose.ES512,
+	jose.PS256, jose.PS384, jose.PS512,
+}
 
 // predefined cache errors
 var (
@@ -166,7 +176,7 @@ func (cache *MemoryCache) StoreJWT(key string, rawJWT string) error {
 }
 
 func checkExpiry(rawJWT string) error {
-	tok, err := jose.ParseSigned(rawJWT)
+	tok, err := jose.ParseSigned(rawJWT, SignatureAlgorithms)
 	if err != nil {
 		return ErrInvalid
 	}

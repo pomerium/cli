@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-jose/go-jose/v3"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -256,7 +256,7 @@ func mustRawJWT(t *testing.T, expiry time.Time) string {
 
 	signer, err := jose.NewSigner(jose.SigningKey{
 		Algorithm: jose.HS256,
-		Key:       []byte("secret"),
+		Key:       []byte("01234567890123456789012345678901"),
 	}, nil)
 	require.NoError(t, err)
 

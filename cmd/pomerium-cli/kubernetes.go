@@ -9,10 +9,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-jose/go-jose/v3"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/spf13/cobra"
 
 	"github.com/pomerium/cli/authclient"
+	"github.com/pomerium/cli/jwt"
 )
 
 func init() {
@@ -95,7 +96,7 @@ var kubernetesExecCredentialCmd = &cobra.Command{
 }
 
 func parseToken(rawjwt string) (*ExecCredential, error) {
-	tok, err := jose.ParseSigned(rawjwt)
+	tok, err := jose.ParseSigned(rawjwt, jwt.SignatureAlgorithms)
 	if err != nil {
 		return nil, err
 	}
