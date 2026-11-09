@@ -30,35 +30,42 @@ jobs:
       - name: test
         run: make test
 
-  cross-compile:
-    # build every released target so platform-specific breaks (including in
-    # dependencies) fail on PRs instead of at release time
+  build-goreleaser:
+    # linux/freebsd release targets, read from goreleaser.yaml
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { goos: linux, goarch: amd64 }
-          - { goos: linux, goarch: arm64 }
-          - { goos: linux, goarch: arm, goarm: "6" }
-          - { goos: linux, goarch: arm, goarm: "7" }
-          - { goos: freebsd, goarch: amd64 }
-          - { goos: darwin, goarch: amd64 }
-          - { goos: darwin, goarch: arm64 }
-          - { goos: windows, goarch: amd64 }
-          - { goos: windows, goarch: arm64 }
-    name: cross-compile (${{ matrix.goos }}/${{ matrix.goarch }}${{ matrix.goarm }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: .tool-versions
-      - name: build
+          cache: false
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          version: v2.8.2
+          args: build --snapshot --clean
         env:
-          GOOS: ${{ matrix.goos }}
+          VERSION_FLAGS: ""
+
+  build-native:
+    # darwin/windows release targets, built the same way as release.yaml
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-latest]
+        goarch: [amd64, arm64]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .tool-versions
+          cache: false
+      - name: build
+        shell: bash
+        env:
           GOARCH: ${{ matrix.goarch }}
-          GOARM: ${{ matrix.goarm }}
-        run: make build
+          CGO_ENABLED: "1"
+        run: go build -o bin/ ./cmd/pomerium-cli
 
   precommit:
     runs-on: ubuntu-latest
