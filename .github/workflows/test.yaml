@@ -30,6 +30,36 @@ jobs:
       - name: test
         run: make test
 
+  cross-compile:
+    # build every released target so platform-specific breaks (including in
+    # dependencies) fail on PRs instead of at release time
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goos: linux, goarch: amd64 }
+          - { goos: linux, goarch: arm64 }
+          - { goos: linux, goarch: arm, goarm: "6" }
+          - { goos: linux, goarch: arm, goarm: "7" }
+          - { goos: freebsd, goarch: amd64 }
+          - { goos: darwin, goarch: amd64 }
+          - { goos: darwin, goarch: arm64 }
+          - { goos: windows, goarch: amd64 }
+          - { goos: windows, goarch: arm64 }
+    name: cross-compile (${{ matrix.goos }}/${{ matrix.goarch }}${{ matrix.goarm }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .tool-versions
+      - name: build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+        run: make build
+
   precommit:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
