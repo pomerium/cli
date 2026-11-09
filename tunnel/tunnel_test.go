@@ -26,6 +26,10 @@ func TestTunnel(t *testing.T) {
 	}
 	defer backend.Close()
 
+	// Run returns on local EOF, possibly before the proxy handler dials the
+	// backend; wait for the backend to receive the line so t isn't used after
+	// the test ends.
+	received := make(chan string, 1)
 	go func() {
 		for {
 			conn, err := backend.Accept()
@@ -36,7 +40,7 @@ func TestTunnel(t *testing.T) {
 				defer conn.Close()
 
 				ln, _, _ := bufio.NewReader(conn).ReadLine()
-				assert.Equal(t, "HELLO WORLD", string(ln))
+				received <- string(ln)
 			}()
 		}
 	}()
@@ -83,6 +87,13 @@ func TestTunnel(t *testing.T) {
 	err = tun.Run(ctx, readWriter{strings.NewReader("HELLO WORLD\n"), &buf}, DiscardEvents())
 	if !assert.NoError(t, err) {
 		return
+	}
+
+	select {
+	case ln := <-received:
+		assert.Equal(t, "HELLO WORLD", ln)
+	case <-ctx.Done():
+		t.Fatal("backend did not receive data through the tunnel")
 	}
 }
 
