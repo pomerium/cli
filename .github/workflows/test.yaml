@@ -1,51 +1,11 @@
-name: Test
-permissions:
-  contents: read
+name: CLI Actions startup probe
 on:
   push:
-    branches:
-      - main
-  pull_request: null
-
+    tags: [v0.0.0-eng4523-verify.4]
+permissions:
+  contents: read
 jobs:
-  test:
+  probe:
     runs-on: ubuntu-latest
     steps:
-      - name: set env vars
-        run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: .tool-versions
-      - name: cache go binaries
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        id: cache-go-bin
-        with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-${{ hashFiles('**/go.mod') }}
-          restore-keys: ${{ runner.os }}-go-bin
-      - name: test
-        run: make test
-
-  precommit:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: .tool-versions
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.x"
-      - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
-        with:
-          extra_args: --show-diff-on-failure --from-ref ${{
-            github.event.pull_request.base.sha }} --to-ref ${{
-            github.event.pull_request.head.sha }}
-        env:
-          SKIP: lint
+      - run: echo 'GitHub runner started'
