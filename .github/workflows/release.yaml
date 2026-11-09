@@ -23,17 +23,17 @@ jobs:
         SECRETS_SET: ${{ secrets.MACOS_SIGN_P12 && secrets.MACOS_SIGN_PASSWORD && secrets.MACOS_INSTALLER_P12 && secrets.MACOS_INSTALLER_PASSWORD && secrets.APPLE_ID_KEY && secrets.APPLE_ID && secrets.APPLE_ID_KEY_ISSUER && 'true' }}
       run: test "$SECRETS_SET" = true
     - name: Checkout
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
     - name: Set up Go
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         go-version-file: .tool-versions
         cache: false
     - name: Build macOS binaries
       env:
-        VERSION_FLAGS: -X github.com/pomerium/cli/version.Version=v0.0.0 -X github.com/pomerium/cli/version.GitCommit=70d4963
+        VERSION_FLAGS: -X github.com/pomerium/cli/version.Version=v0.0.0 -X github.com/pomerium/cli/version.GitCommit=7d6d76e
       run: |
         for arch in amd64 arm64; do
           mkdir -p "bin/$arch"
@@ -62,6 +62,8 @@ jobs:
         security import "$RUNNER_TEMP/apple-signing/sign.p12" -k "$keychain" -P "$MACOS_SIGN_PASSWORD" -T /usr/bin/codesign
         security import "$RUNNER_TEMP/apple-signing/installer.p12" -k "$keychain" -P "$MACOS_INSTALLER_PASSWORD" -T /usr/bin/pkgbuild
         security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
+        # codesign uses the search list to build the certificate chain.
+        security list-keychains -d user -s "$keychain"
         rm "$RUNNER_TEMP/apple-signing/sign.p12" "$RUNNER_TEMP/apple-signing/installer.p12"
     - name: Sign and package
       env:
