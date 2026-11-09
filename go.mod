@@ -13,9 +13,9 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
-	github.com/pomerium/pomerium v0.34.0
-	github.com/pomerium/pomerium/pkg/grpc/config v0.34.0
-	github.com/pomerium/pomerium/pkg/grpc/databroker v0.34.0
+	github.com/pomerium/pomerium v0.34.1-0.20261109224338-2a3172f37c7f
+	github.com/pomerium/pomerium/pkg/grpc/config v0.34.1-0.20261109224338-2a3172f37c7f
+	github.com/pomerium/pomerium/pkg/grpc/databroker v0.34.1-0.20261109224338-2a3172f37c7f
 	github.com/quic-go/quic-go v0.64.1
 	github.com/rs/zerolog v1.35.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
