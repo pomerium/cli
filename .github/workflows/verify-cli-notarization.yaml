@@ -1,0 +1,141 @@
+name: Verify CLI signing and notarization
+'on':
+  push:
+    tags:
+    - v0.0.0-eng4523-verify.*
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    outputs:
+      versionFlags: ${{ steps.flags.outputs.versionFlags }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Set build version metadata flags
+      id: flags
+      env:
+        VERSION: v0.0.0
+      run: |
+        ldflags=(
+          "-X github.com/pomerium/cli/version.Version=$VERSION"
+          "-X github.com/pomerium/cli/version.GitCommit=$(git rev-parse --short HEAD)"
+          "-X github.com/pomerium/cli/version.BuildMeta=$(date +%s)"
+          "-X github.com/pomerium/cli/version.ProjectName=pomerium-cli"
+          "-X github.com/pomerium/cli/version.ProjectURL=https://www.pomerium.com"
+        )
+        echo "versionFlags=${ldflags[*]}" >> "$GITHUB_OUTPUT"
+  build-darwin:
+    permissions:
+      contents: read
+    runs-on: macos-15
+    needs: metadata
+    environment: apple-signing
+    timeout-minutes: 90
+    outputs:
+      checksums: ${{ steps.checksums.outputs.checksums }}
+    steps:
+    - name: Check signing secrets
+      env:
+        SECRETS_SET: ${{ secrets.MACOS_SIGN_P12 && secrets.MACOS_SIGN_PASSWORD && secrets.MACOS_INSTALLER_P12 && secrets.MACOS_INSTALLER_PASSWORD && secrets.APPLE_ID_KEY && secrets.APPLE_ID && secrets.APPLE_ID_KEY_ISSUER && 'true' }}
+      run: test "$SECRETS_SET" = true
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Set up Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+      with:
+        go-version-file: .tool-versions
+        cache: false
+    - name: Build macOS binaries
+      env:
+        VERSION_FLAGS: ${{ needs.metadata.outputs.versionFlags }}
+      run: |
+        for arch in amd64 arm64; do
+          mkdir -p "bin/$arch"
+          GOARCH=$arch CGO_ENABLED=1 go build -o "bin/$arch" \
+            -ldflags="-s -w $VERSION_FLAGS" \
+            ./cmd/pomerium-cli
+        done
+        mkdir -p bin/universal
+        lipo -create -output bin/universal/pomerium-cli bin/amd64/pomerium-cli bin/arm64/pomerium-cli
+    - name: Import signing certificates
+      env:
+        MACOS_SIGN_P12: ${{ secrets.MACOS_SIGN_P12 }}
+        MACOS_SIGN_PASSWORD: ${{ secrets.MACOS_SIGN_PASSWORD }}
+        MACOS_INSTALLER_P12: ${{ secrets.MACOS_INSTALLER_P12 }}
+        MACOS_INSTALLER_PASSWORD: ${{ secrets.MACOS_INSTALLER_PASSWORD }}
+      run: |
+        umask 077
+        mkdir "$RUNNER_TEMP/apple-signing"
+        keychain="$RUNNER_TEMP/apple-signing/signing.keychain-db"
+        password=$(openssl rand -hex 32)
+        security create-keychain -p "$password" "$keychain"
+        security set-keychain-settings -lut 3600 "$keychain"
+        security unlock-keychain -p "$password" "$keychain"
+        printf '%s' "$MACOS_SIGN_P12" | base64 --decode > "$RUNNER_TEMP/apple-signing/sign.p12"
+        printf '%s' "$MACOS_INSTALLER_P12" | base64 --decode > "$RUNNER_TEMP/apple-signing/installer.p12"
+        security import "$RUNNER_TEMP/apple-signing/sign.p12" -k "$keychain" -P "$MACOS_SIGN_PASSWORD" -T /usr/bin/codesign
+        security import "$RUNNER_TEMP/apple-signing/installer.p12" -k "$keychain" -P "$MACOS_INSTALLER_PASSWORD" -T /usr/bin/pkgbuild
+        security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
+        rm "$RUNNER_TEMP/apple-signing/sign.p12" "$RUNNER_TEMP/apple-signing/installer.p12"
+    - name: Sign and package
+      env:
+        VERSION: v0.0.0
+      run: |
+        keychain="$RUNNER_TEMP/apple-signing/signing.keychain-db"
+        for arch in amd64 arm64 universal; do
+          codesign --force --timestamp --options runtime --keychain "$keychain" \
+            --sign "Developer ID Application" "bin/$arch/pomerium-cli"
+          codesign --verify --strict --verbose=2 "bin/$arch/pomerium-cli"
+          codesign -dv "bin/$arch/pomerium-cli" 2>&1 | grep -Fx 'TeamIdentifier=4RYVW695ZQ'
+          zip -qj "pomerium-cli-darwin-$arch.zip" "bin/$arch/pomerium-cli"
+        done
+        pkgbuild --root bin/universal --identifier com.pomerium.pomerium-cli --version "${VERSION#v}" \
+          --install-location /usr/local/bin/ --keychain "$keychain" \
+          --sign "Developer ID Installer" --timestamp pomerium-cli.pkg
+        pkgutil --check-signature pomerium-cli.pkg
+    - name: Notarize and staple
+      env:
+        MACOS_NOTARY_KEY: ${{ secrets.APPLE_ID_KEY }}
+        MACOS_NOTARY_KEY_ID: ${{ secrets.APPLE_ID }}
+        MACOS_NOTARY_ISSUER_ID: ${{ secrets.APPLE_ID_KEY_ISSUER }}
+      run: |
+        umask 077
+        printf '%s' "$MACOS_NOTARY_KEY" > "$RUNNER_TEMP/apple-signing/notary.p8"
+        for file in pomerium-cli-darwin-*.zip pomerium-cli.pkg; do
+          xcrun notarytool submit "$file" --key "$RUNNER_TEMP/apple-signing/notary.p8" --key-id "$MACOS_NOTARY_KEY_ID" \
+            --issuer "$MACOS_NOTARY_ISSUER_ID" --wait --timeout 15m --output-format json > "$RUNNER_TEMP/apple-signing/notary.json"
+          cat "$RUNNER_TEMP/apple-signing/notary.json"
+          jq -e '.status == "Accepted"' "$RUNNER_TEMP/apple-signing/notary.json"
+        done
+        xcrun stapler staple pomerium-cli.pkg
+        xcrun stapler validate pomerium-cli.pkg
+        spctl --assess --type install --verbose=2 pomerium-cli.pkg
+    - name: Remove signing credentials
+      if: always()
+      run: |
+        keychain="$RUNNER_TEMP/apple-signing/signing.keychain-db"
+        if [[ -f "$keychain" ]]; then
+          security delete-keychain "$keychain"
+        fi
+        rm -f "$RUNNER_TEMP/apple-signing/sign.p12" "$RUNNER_TEMP/apple-signing/installer.p12" \
+          "$RUNNER_TEMP/apple-signing/notary.p8" "$RUNNER_TEMP/apple-signing/notary.json"
+        if [[ -d "$RUNNER_TEMP/apple-signing" ]]; then
+          rmdir "$RUNNER_TEMP/apple-signing"
+        fi
+    - name: Compute checksums
+      id: checksums
+      run: |
+        {
+          echo 'checksums<<EOF'
+          shasum -a 256 pomerium-cli-darwin-*.zip pomerium-cli.pkg
+          echo EOF
+        } >> "$GITHUB_OUTPUT"
