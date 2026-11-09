@@ -137,6 +137,8 @@ jobs:
           security import "$RUNNER_TEMP/apple-signing/sign.p12" -k "$keychain" -P "$MACOS_SIGN_PASSWORD" -T /usr/bin/codesign
           security import "$RUNNER_TEMP/apple-signing/installer.p12" -k "$keychain" -P "$MACOS_INSTALLER_PASSWORD" -T /usr/bin/pkgbuild
           security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
+          # codesign uses the search list to build the certificate chain.
+          security list-keychains -d user -s "$keychain"
           rm "$RUNNER_TEMP/apple-signing/sign.p12" "$RUNNER_TEMP/apple-signing/installer.p12"
 
       - name: Sign and package
