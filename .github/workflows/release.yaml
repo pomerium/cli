@@ -60,6 +60,7 @@ jobs:
           VERSION_FLAGS: ${{ needs.metadata.outputs.versionFlags }}
         run: |
           echo 'checksums<<EOF' >> "$GITHUB_OUTPUT"
+          # keep targets in sync with build-native in test.yaml
           for arch in amd64 arm64; do
             mkdir -p "bin/$arch"
             GOARCH=$arch CGO_ENABLED=1 go build -o "bin/$arch" \
@@ -109,6 +110,7 @@ jobs:
         env:
           VERSION_FLAGS: ${{ needs.metadata.outputs.versionFlags }}
         run: |
+          # keep targets in sync with build-native in test.yaml
           for arch in amd64 arm64; do
             mkdir -p "bin/$arch"
             GOARCH=$arch CGO_ENABLED=1 go build -o "bin/$arch" \
