@@ -13,9 +13,9 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/martinlindhe/base36 v1.1.1
-	github.com/pomerium/pomerium v0.34.1-0.20261119225326-3d7b523df7da
-	github.com/pomerium/pomerium/pkg/grpc/config v0.34.1-0.20261119225326-3d7b523df7da
-	github.com/pomerium/pomerium/pkg/grpc/databroker v0.34.1-0.20261119225326-3d7b523df7da
+	github.com/pomerium/pomerium v0.34.1-0.20261121020406-4b1b391b594d
+	github.com/pomerium/pomerium/pkg/grpc/config v0.34.1-0.20261121020406-4b1b391b594d
+	github.com/pomerium/pomerium/pkg/grpc/databroker v0.34.1-0.20261121020406-4b1b391b594d
 	github.com/quic-go/quic-go v0.64.1
 	github.com/rs/zerolog v1.35.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -86,7 +86,6 @@ require (
 	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/libdns/libdns v1.1.1 // indirect
-	github.com/libp2p/go-reuseport v0.4.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
