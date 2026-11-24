@@ -1,15 +1,15 @@
 package jwt
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/go-jose/go-jose/v3"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/pomerium/pomerium/pkg/cryptutil"
 )
 
 func TestLocalCache(t *testing.T) {
@@ -32,12 +32,7 @@ func TestLocalCache(t *testing.T) {
 		assert.Equal(t, ErrInvalid, err)
 	})
 	t.Run("Expired", func(t *testing.T) {
-		privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-		if !assert.NoError(t, err) {
-			return
-		}
-
-		signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.PS512, Key: privateKey}, nil)
+		signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.HS256, Key: cryptutil.NewKey()}, nil)
 		if !assert.NoError(t, err) {
 			return
 		}
