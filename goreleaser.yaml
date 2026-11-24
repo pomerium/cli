@@ -91,6 +91,9 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--pull"
+      # single-platform images, so docker manifest create can combine them
+      - "--provenance=false"
+      - "--sbom=false"
       - "--platform=linux/amd64"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.name={{.ProjectName}}"
@@ -107,6 +110,9 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--pull"
+      # single-platform images, so docker manifest create can combine them
+      - "--provenance=false"
+      - "--sbom=false"
       - "--platform=linux/arm64"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.name={{.ProjectName}}"

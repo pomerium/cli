@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - "0-[0-9]+-*"
   pull_request: null
 
 jobs:
@@ -28,6 +29,43 @@ jobs:
           restore-keys: ${{ runner.os }}-go-bin
       - name: test
         run: make test
+
+  build-goreleaser:
+    # linux/freebsd release targets, read from goreleaser.yaml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .tool-versions
+          cache: false
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          version: v2.8.2
+          args: build --snapshot --clean
+        env:
+          VERSION_FLAGS: ""
+
+  build-native:
+    # darwin/windows release targets, built the same way as release.yaml
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-latest]
+        goarch: [amd64, arm64]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .tool-versions
+          cache: false
+      - name: build
+        shell: bash
+        env:
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "1"
+        run: go build -o bin/ ./cmd/pomerium-cli
 
   precommit:
     runs-on: ubuntu-latest

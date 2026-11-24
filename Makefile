@@ -29,7 +29,6 @@ CTIMEVAR=-X $(PKG)/version.GitCommit=$(GITCOMMIT) \
 GO ?= "go"
 GOTAGS = -tags embed_pomerium
 GO_LDFLAGS=-ldflags "-s -w $(CTIMEVAR)"
-GOOSARCHES = linux/amd64 darwin/amd64 windows/amd64
 
 .PHONY: all
 all: clean lint test build
