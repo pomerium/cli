@@ -20,14 +20,9 @@ import (
 )
 
 // SignatureAlgorithms are the JWS algorithms accepted when reading claims from
-// a Pomerium JWT. The signature itself is not verified.
-var SignatureAlgorithms = []jose.SignatureAlgorithm{
-	jose.EdDSA,
-	jose.HS256, jose.HS384, jose.HS512,
-	jose.RS256, jose.RS384, jose.RS512,
-	jose.ES256, jose.ES384, jose.ES512,
-	jose.PS256, jose.PS384, jose.PS512,
-}
+// a Pomerium JWT. The signature itself is not verified. Pomerium signs the
+// programmatic login JWT with HS256 using its shared secret.
+var SignatureAlgorithms = []jose.SignatureAlgorithm{jose.HS256}
 
 // predefined cache errors
 var (
